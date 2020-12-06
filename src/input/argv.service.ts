@@ -19,6 +19,11 @@ export class ArgvService {
                 default: '1.xls',
                 demandOption: true,
                 description: 'Excel file name. Ex. test.xlsx'
+            },
+            indicatorOffset: {
+                alias: 'io',
+                default: 200,
+                description: 'Inicator offset ex. 200'
             }
           })
             .argv;
@@ -36,5 +41,9 @@ export class ArgvService {
 
     getFile(): string {
         return this.argv.file
+    }
+
+    getIndicatorOffset(): number {
+        return this.argv.indicatorOffset
     }
 }

@@ -36,7 +36,8 @@ async function bootstrap() {
   const key: Key = {
     trade: "trade",
     timeframe: firstOrder.meta.timeframe, // should be first order timeframe
-    symbol: firstOrder.symbol
+    symbol: firstOrder.symbol,
+    indicatorOffset: argvService.getIndicatorOffset()
   }
   
   const testingKey = keyService.getTestingKey(key, dates[0], dates[1])

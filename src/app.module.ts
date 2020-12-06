@@ -1,3 +1,4 @@
+import { EmaService } from './indicators/indicators/ema.service';
 import { LogModule } from './log/log.module';
 import { BencBehaviourService } from './behaviour/bencbehaviour.service';
 import { BehaviourModule } from './behaviour/behaviour.module';
@@ -32,6 +33,7 @@ import { AppService } from './app.service';
     CandlesModule,],
   controllers: [AppController],
   providers: [
+    EmaService,
     BencBehaviourService,
     ArgvService,
     LogService,

@@ -72,7 +72,8 @@ export class LogService {
             short: 0,
             profit: 0,
             so_fee: 0,
-            bob_fee: 0
+            bob_fee: 0,
+            indicator: ''
         }
 
         return item
@@ -112,7 +113,7 @@ export class LogService {
 
         const mapXlsx = this.mapXlsx()
 
-        const xls = xlsx(mapXlsx, this.shortLog, settings, false)
+        const xls = xlsx(mapXlsx, this.log, settings, false)
 
         fse.ensureFileSync(filePath)
         // open the file in writing mode, adding a callback function where we do the actual writing
@@ -141,6 +142,7 @@ export class LogService {
             { label: "close", value: "close" },
             { label: "high", value: "high" },
             { label: "low", value: "low" },
+            { label: "indicator price", value: "indicator" },
             { label: "Tf", value: "timeframe" },
             //{ label: "Start candle mts", value: "candle_set_start" },
             { label: "Buy order ID", value: "bo_cid" },            
