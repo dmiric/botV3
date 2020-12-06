@@ -22,15 +22,12 @@ async function bootstrap() {
   const keyService = app.select(CandlesModule).get(KeyService, { strict: true })
   const testerService = app.select(BacktestModule).get(TesterService, { strict: true })
   const readXlsService = app.select(InputModule).get(ReadxlsService, { strict: true })
+  const argvService = app.select(InputModule).get(ArgvService, { strict: true })
+  const histCandlesService = app.select(CandlesModule).get(HistCandlesService, { strict: true });
 
   const firstOrder = ordersService.getOrder(101);
-  const dates = readXlsService.getDates()
-
-  const argvService = app.select(InputModule).get(ArgvService, { strict: true })
-
-
-  const test = app.select(CandlesModule).get(HistCandlesService, { strict: true });
-  await test.prepareHistData(ordersService.getOrders());
+  const dates = readXlsService.getDates() 
+  await histCandlesService.prepareHistData(ordersService.getOrders());
 
   // these keys should be returned by the key service
   const key: Key = {
