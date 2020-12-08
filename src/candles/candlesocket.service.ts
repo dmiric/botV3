@@ -1,9 +1,7 @@
 import { Injectable } from "@nestjs/common";
+import { Key } from '../interfaces/key.model';
 // import * as WebSocket from "ws";
-
-import { Key } from '../interfaces/key.model'
-
-import { Subject, Observable, Subscription } from 'rxjs'
+import { Subject, Observable } from 'rxjs'
 import { share, switchMap, retryWhen } from 'rxjs/operators'
 import makeWebSocketObservable, {
     GetWebSocketResponses
@@ -11,9 +9,6 @@ import makeWebSocketObservable, {
 
 @Injectable()
 export class CandleSocketService {
-
-    private timeframe: string
-    private key: string
 
     public input$ = new Subject<string>()
     private socket$ = makeWebSocketObservable('wss://api-pub.bitfinex.com/ws/2')
@@ -27,29 +22,17 @@ export class CandleSocketService {
         share(),
     )
 
-    public initStream(keyValues: Key): void{
-        this.setKey(keyValues)
-        this.setTimeFrame(keyValues)
+    public setSubscription(key: Key): void {
+        const keyString = "trade:" + key.timeframe + ":" + key.symbol
+        const msg = this.getSubscribeMessage(keyString)
+        this.input$.next(msg)
     }
 
-
-    private setKey(keyValues: Key) {
-        this.key = keyValues.trade + ":" + keyValues.timeframe + ":" + keyValues.symbol;
-    }
-
-    private setTimeFrame(keyValues: Key) {
-        this.timeframe = keyValues.timeframe;
-    }
-
-    public getTimeFrame(): string {
-        return this.timeframe;
-    }
-
-    public getSubscribeMessage(): string {
+    private getSubscribeMessage(keyString: string): string {
         return JSON.stringify({
             event: 'subscribe',
             channel: 'candles',
-            key: this.key //'trade:TIMEFRAME:SYMBOL'
+            key: keyString //'trade:TIMEFRAME:SYMBOL'
         })
     }
 

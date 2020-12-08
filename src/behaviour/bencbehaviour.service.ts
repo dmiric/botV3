@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { OrdersService } from '../orders/orders.service'
 import { Candle } from '../interfaces/candle.model'
-import { Order } from '../interfaces/order.model'
 import { OrderCycleService } from '../orders/ordercycle.service'
 
 @Injectable()
@@ -9,7 +8,7 @@ export class BencBehaviourService {
 
     constructor(private ordersService: OrdersService, private ordersCycle: OrderCycleService) { }
 
-    // do this some day if we start working with more indicators
+    // do this some day if we start working with more behaviours
     // https://stackoverflow.com/questions/53776882/how-to-handle-nestjs-dependency-injection-when-extending-a-class-for-a-service
     public nextOrderIdThatMatchesRules(candles: Candle[]): number {
 

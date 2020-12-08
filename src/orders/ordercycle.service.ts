@@ -14,9 +14,9 @@ export class OrderCycleService {
     private currentTimeFrame = ''
 
     constructor(
-        private orderCycles: OrderCyclesService, 
+        private orderCycles: OrderCyclesService,
         private logService: LogService
-        ) { }
+    ) { }
 
     addBuyOrder(order: Order, price: number): void {
         order.price = price
@@ -29,8 +29,8 @@ export class OrderCycleService {
     }
 
     getCurrentTimeFrame(): string {
-        if(this.currentTimeFrame) {
-          return this.currentTimeFrame
+        if (this.currentTimeFrame) {
+            return this.currentTimeFrame
         }
 
         return
@@ -63,8 +63,8 @@ export class OrderCycleService {
     }
 
     getLastUnFilledBuyOrderId(): number {
-        if (this.getLastBuyOrder()) {
-            const lastBuyOrder = this.getLastBuyOrder()
+        const lastBuyOrder = this.getLastBuyOrder()
+        if (lastBuyOrder) {
             if (typeof (lastBuyOrder.status) == 'undefined') {
                 return lastBuyOrder.cid
             }
@@ -90,7 +90,7 @@ export class OrderCycleService {
             buyOrder.cid,
             buyOrder.price,
             (buyOrder.price * buyOrder.amount) * 0.001
-        ], ['total_amount', 'total_value' ,'bob_cid', 'bob_price', 'bob_fee'])
+        ], ['total_amount', 'total_value', 'bob_cid', 'bob_price', 'bob_fee'])
 
         this.setSellOrder(buyOrder.symbol)
     }
@@ -122,7 +122,7 @@ export class OrderCycleService {
     }
 
     timeFrameChanged(): boolean {
-        if(this.buyOrders[this.buyOrders.length - 1].meta.timeframe != this.currentTimeFrame) {
+        if (this.buyOrders[this.buyOrders.length - 1].meta.timeframe != this.currentTimeFrame) {
             return true
         }
 

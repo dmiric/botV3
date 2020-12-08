@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Key, TestingKey } from '../interfaces/key.model'
+import { Key } from '../interfaces/key.model'
 
 @Injectable()
 export class KeyService {
@@ -11,7 +11,7 @@ export class KeyService {
         this.setTimeFrame(keyValues)
     }
 
-    public getTestingKey(key: Key, start: number, end: number): TestingKey {
+    public getKey(key: Key, start: number, end: number): Key {
         return {
             ...key,
             start: start,

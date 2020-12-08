@@ -3,9 +3,6 @@ export interface Key {
   timeframe: string;
   symbol: string;
   indicatorOffset: number;
-}
-
-export interface TestingKey extends Key {
   start: number;
   end: number;
-} 
+}

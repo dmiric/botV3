@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Key, TestingKey } from '../interfaces/key.model'
+import { Key } from '../interfaces/key.model'
 import { Candle } from '../interfaces/candle.model'
 import { Candle as CandleObj } from 'bfx-api-node-models'
 import { candleWidth } from 'bfx-hf-util'
@@ -12,7 +12,7 @@ export class ParseCandlesService {
     private histCandles: Candle[] = [];
     private candleWidthVal: number
 
-    handleCandleStream(data: number[][], key: Key|TestingKey, candleSet: Candle[]): Candle[] {
+    handleCandleStream(data: number[][], key: Key, candleSet: Candle[]): Candle[] {
         if (candleSet.length > 0) {
             this.histCandles = candleSet;
         } else {

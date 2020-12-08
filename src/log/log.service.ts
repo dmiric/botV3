@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as fse from 'fs-extra'
-import { TestingKey } from 'src/interfaces/key.model';
+import { Key } from '../interfaces/key.model';
 import { ArgvService } from 'src/input/argv.service';
 
 @Injectable()
@@ -14,14 +14,14 @@ export class LogService {
     private shortLog = [];
     private currentItem;
     private cryptoXlsDir = path.join(os.homedir(), 'Documents', 'CryptoXLS')
-    private testingKey: TestingKey
+    private key: Key
 
     constructor(private argvService: ArgvService) { }
 
-    setTestingKey(testingKey: TestingKey): void {
-        if (!this.testingKey) {
-            this.testingKey = testingKey
-            console.log("set testing key")
+    setKey(key: Key): void {
+        if (!this.key) {
+            this.key = key
+            console.log("set key")
         }
     }
 
@@ -88,17 +88,17 @@ export class LogService {
     }
 
     writeXls(): void {
-        const startDate = new Date(this.testingKey.start)
+        const startDate = new Date(this.key.start)
         const startYear = startDate.getUTCFullYear()
         const startMonth = startDate.getUTCMonth()
         
-        const endDate = new Date(this.testingKey.end)
+        const endDate = new Date(this.key.end)
         const endYear = endDate.getUTCFullYear()
         const endMonth = endDate.getUTCMonth()
 
         const xlsFileName = this.argvService.getFile().split('.')
 
-        let filePath = path.join(this.cryptoXlsDir, this.testingKey.symbol, 'test', xlsFileName[0],
+        let filePath = path.join(this.cryptoXlsDir, this.key.symbol, 'test', xlsFileName[0],
             startYear + '-' + startMonth + '_' + endYear + '-' + endMonth);
 
         // Check if the file exists in the current directory, and if it is writable.

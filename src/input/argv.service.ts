@@ -24,6 +24,11 @@ export class ArgvService {
                 alias: 'io',
                 default: 200,
                 description: 'Inicator offset ex. 200'
+            },
+            live: {
+                alias: 'l',
+                default: false,
+                description: 'Run o live exchange.'
             }
           })
             .argv;
@@ -45,5 +50,9 @@ export class ArgvService {
 
     getIndicatorOffset(): number {
         return this.argv.indicatorOffset
+    }
+
+    isLive(): number {
+        return this.argv.live
     }
 }

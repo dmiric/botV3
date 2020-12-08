@@ -28,7 +28,7 @@ export class HistCandlesService {
                 continue;
             }
 
-            const candleWidthVal = candleWidth(timeframe) 
+            const candleWidthVal = candleWidth(timeframe)
             // check if we already delt with the same timeframe in this session 
             if (passedTimeFrames.includes(timeframe)) {
                 continue;
@@ -43,27 +43,42 @@ export class HistCandlesService {
                 const filePath = path.join(this.cryptoXlsDir, symbol, 'hist', timeframe,
                     period.year + '-' + period.startmonth + '.csv');
 
+                let csv = '';
+
                 // Check if the file exists in the current directory, and if it is writable.
                 if (fs.existsSync(filePath)) {
                     continue;
                 }
 
-                const data = await this.getRestData(pathParamsData, startTime, endTime);
-                const padedCandles = padCandles(data, candleWidthVal)
-                // remove last candle because it's from the next month
-                padedCandles.pop()
+                if (timeframe == '1m') {
+                    const offset = 4 * 24 * 60 * 60 * 1000; // 7200 candles at once
+                    const timeSplits = []
+                    for (let i = 0; i < 8; i++) {
+                        let splitEnd = startTime + (offset * (i + 1))
 
-                // wait 600ms delay so we don't hit the rate limit
-                await new Promise(r => setTimeout(r, 600));
+                        if(splitEnd > endTime) {
+                            splitEnd = endTime
+                            timeSplits.push([startTime + (offset * i), splitEnd])
+                            break;
+                        }
+                        // this is 8 iterations to get all candles from that month
+                        timeSplits.push([startTime + (offset * i), startTime + (offset * (i + 1))])
+                    }
 
-                const header = ["mts", "open", "close", "high", "low", "volume"]
-                const csv = convertArrayToCSV(padedCandles, {
-                    header,
-                    separator: ','
-                });
+                    const stream = fs.createWriteStream(filePath, { flags: 'a' });
+
+                    for (const timeSplit of timeSplits) {
+                        csv = await this.processRestData(pathParamsData, candleWidthVal, timeSplit[0], timeSplit[1])
+                        stream.write(csv + "\n");
+                        console.log('Saving 1m candles: ' + timeSplit[0] + ':' + timeSplit[1] + ' ' + filePath);
+                    }
+                    stream.end();
+                    continue;
+                }
+
+                csv = await this.processRestData(pathParamsData, candleWidthVal, startTime, endTime)
 
                 // write CSV to a file
-
                 fse.outputFile(filePath, csv, err => {
                     if (err) {
                         console.log(err);
@@ -75,6 +90,18 @@ export class HistCandlesService {
         }
 
         return "done";
+    }
+
+    async processRestData(pathParamsData: string, candleWidthVal: number, startTime: number, endTime: number): Promise<string>  {
+        const data = await this.getRestData(pathParamsData, startTime, endTime);
+        const padedCandles = padCandles(data, candleWidthVal)
+        // remove last candle because it's from the next month
+        padedCandles.pop()
+
+        //const header = ["mts", "open", "close", "high", "low", "volume"]
+        return convertArrayToCSV(padedCandles, {
+            separator: ','
+        });
     }
 
     getTimeFrames(orders: Order[]): string[] {
@@ -146,6 +173,9 @@ export class HistCandlesService {
     }
 
     async getRestData(pathParamsData: string, startTime: number, endTime: number): Promise<any> {
+        // wait 600ms delay so we don't hit the rate limit
+        await new Promise(r => setTimeout(r, 600));
+
         const url = 'https://api-pub.bitfinex.com/v2'
 
         const pathParams = 'candles/' + pathParamsData + '/hist' // Change these based on relevant path params. /last for last candle

@@ -1,3 +1,5 @@
+import { TradeService } from './exchange/trade.service';
+import { ExchangeModule } from './exchange/exchange.module';
 import { EmaService } from './indicators/indicators/ema.service';
 import { LogModule } from './log/log.module';
 import { BencBehaviourService } from './behaviour/bencbehaviour.service';
@@ -24,6 +26,7 @@ import { AppService } from './app.service';
 
 @Module({
   imports: [
+    ExchangeModule,
     LogModule,
     BehaviourModule,
     BacktestModule,
@@ -33,6 +36,7 @@ import { AppService } from './app.service';
     CandlesModule,],
   controllers: [AppController],
   providers: [
+    TradeService,
     EmaService,
     BencBehaviourService,
     ArgvService,

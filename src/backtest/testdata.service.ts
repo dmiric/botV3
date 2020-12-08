@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { convertCSVToArray } from 'convert-csv-to-array'
-import { TestingKey } from '../interfaces/key.model';
+import { Key } from '../interfaces/key.model';
 import { candleWidth } from 'bfx-hf-util'
 
 @Injectable()
@@ -13,11 +13,11 @@ export class TestDataService {
     private cryptoXlsDir = path.join(os.homedir(), 'Documents', 'CryptoXLS')
     private candleCache = []
 
-    getCandles(testingKey: TestingKey): any {
-        const indicatorOffset = testingKey.indicatorOffset * candleWidth(testingKey.timeframe)
+    getCandles(key: Key): any {
+        const indicatorOffset = key.indicatorOffset * candleWidth(key.timeframe)
         // from key get
-        const startTime = testingKey.start - indicatorOffset
-        const path = this.prepareFilePath(testingKey, startTime)
+        const startTime = key.start - indicatorOffset
+        const path = this.prepareFilePath(key, startTime)
 
         const candles = this.getFromCache(path)
         if(candles) {
@@ -67,11 +67,11 @@ export class TestDataService {
         });
     }
 
-    private prepareFilePath(testingKey: TestingKey, startTime: number): string {
+    private prepareFilePath(key: Key, startTime: number): string {
         const startDate = new Date(startTime)
         const startYear = startDate.getUTCFullYear()
         const startMonth = startDate.getUTCMonth()
-        return path.join(this.cryptoXlsDir, testingKey.symbol, 'hist', testingKey.timeframe,
+        return path.join(this.cryptoXlsDir, key.symbol, 'hist', key.timeframe,
         startYear + '-' + startMonth + '.csv');
     }
     

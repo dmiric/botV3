@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { TestDataService } from './testdata.service'
 import { Candle } from '../interfaces/candle.model'
 
-import { Key, TestingKey } from '../interfaces/key.model'
+import { Key } from '../interfaces/key.model'
 import { ParseCandlesService } from '../candles/parsecandles.service'
 
 import { Order } from '../interfaces/order.model'
@@ -36,19 +36,19 @@ export class TesterService {
     ) {
     }
 
-    testingCycle(testingKey: TestingKey, recruise = 0): void {
-        this.logService.setTestingKey(testingKey)
-        const indicatorOffset = testingKey.indicatorOffset
+    testingCycle(key: Key, recruise = 0): void {
+        this.logService.setKey(key)
+        const indicatorOffset = key.indicatorOffset
 
         if (recruise == 0) {
-            this.orderCycleService.setCurrentTimeFrame(testingKey.timeframe)
+            this.orderCycleService.setCurrentTimeFrame(key.timeframe)
             this.indicatorService.init(indicatorOffset)
         }
 
-        const candles = this.testDataService.getCandles(testingKey);
+        const candles = this.testDataService.getCandles(key);
 
         let candleSet: Candle[] = [];
-        const endDate = testingKey.end
+        const endDate = key.end
 
         for (const candle of candles) {
             this.logService.newLine()
@@ -65,7 +65,7 @@ export class TesterService {
                 currentCandle.high,
                 currentCandle.low,
                 this.indicatorService.getResult(),
-                testingKey.timeframe
+                key.timeframe
             ], ['mts', 'datetime', 'open', 'close', 'high', 'low', 'indicator', 'timeframe'], 0)
 
             // check if we reached end date
@@ -76,25 +76,26 @@ export class TesterService {
 
             // last candle in stack we need to get next file
             if (lastCandle.mts == currentCandle.mts) {
-                const key: Key = {
+                const alignedTimeStamp = this.candleUtilService.alignFuture(this.orderCycleService.getCurrentTimeFrame(), currentCandle.mts)
+                
+                const newKey: Key = {
                     trade: "trade",
                     timeframe: this.orderCycleService.getCurrentTimeFrame(),
-                    symbol: testingKey.symbol,
-                    indicatorOffset: 0
+                    symbol: key.symbol,
+                    indicatorOffset: 0,
+                    start: alignedTimeStamp,
+                    end: key.end
                 }
-
-                const alignedTimeStamp = this.candleUtilService.alignFuture(key.timeframe, currentCandle.mts)
-                const tk = this.keyService.getTestingKey(key, alignedTimeStamp, testingKey.end)
 
                 recruise++
                 //process.nextTick(() => {
-                setTimeout(() => { this.testingCycle(tk, recruise) }, 10)
+                setTimeout(() => { this.testingCycle(newKey, recruise) }, 10)
                 //})
                 return
             }
 
             // we don't go furter if we didn't yet finish calculating the indicator (ema)
-            if (currentCandle.mts < testingKey.start) {
+            if (currentCandle.mts < key.start) {
                 continue
             }
 
@@ -122,7 +123,7 @@ export class TesterService {
             }
 
             // conditions that determine setting a new buy order
-            candleSet = this.parseCandlesService.handleCandleStream([candle], testingKey, candleSet)
+            candleSet = this.parseCandlesService.handleCandleStream([candle], key, candleSet)
             if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId()) {
                 const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet)
                 // await new Promise(r => setTimeout(r, 500));
@@ -152,21 +153,21 @@ export class TesterService {
 
                     candleSet = []
                     if (this.orderCycleService.timeFrameChanged() && endDate > currentCandle.mts) {
+                        const alignedTimeStamp = this.candleUtilService.alignPast(key.timeframe, currentCandle.mts)
 
-                        const key: Key = {
+                        const newKey: Key = {
                             trade: "trade",
                             timeframe: this.orderCycleService.getLastOrderTimeFrame(), // should be first order timeframe
                             symbol: order.symbol,
-                            indicatorOffset: indicatorOffset
+                            indicatorOffset: indicatorOffset,
+                            start: alignedTimeStamp,
+                            end: key.end
                         }
 
-                        const alignedTimeStamp = this.candleUtilService.alignPast(key.timeframe, currentCandle.mts)
-
-                        const tk = this.keyService.getTestingKey(key, alignedTimeStamp, testingKey.end)
                         recruise++
                         this.indicatorService.init(indicatorOffset)
                         //process.nextTick(() => {
-                        setTimeout(() => { this.testingCycle(tk, recruise) }, 10)
+                        setTimeout(() => { this.testingCycle(newKey, recruise) }, 10)
                         //})
                         return
                     }
