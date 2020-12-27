@@ -1,69 +1,89 @@
-import { Injectable } from '@nestjs/common';
-import { OrderCycle } from '../interfaces/ordercycle.model';
+import { Injectable } from '@nestjs/common'
+import { OrderCycle } from '../interfaces/ordercycle.model'
 import { Order } from '../interfaces/order.model'
-import { OrderCyclesService } from './ordercycles.service';
-import { LogService } from '../log/log.service';
+import { OrderCyclesService } from './ordercycles.service'
+import { LogService } from '../log/log.service'
+import { Key } from '../interfaces/key.model'
 
 @Injectable()
 export class OrderCycleService {
 
     private buyOrders: Order[] = []
     private sellOrders: Order[] = []
-    private totalAmount = 0
-    private totalValue = 0
-    private currentTimeFrame = ''
+    private totalAmount = {}
+    private totalValue = {}
+    private currentTimeFrame = {}
+    private currentBalance = {}
 
     constructor(
         private orderCycles: OrderCyclesService,
         private logService: LogService
     ) { }
 
-    addBuyOrder(order: Order, price: number): void {
-        order.price = price
+    setCurrentBalance(key: Key, change = 0): void {
+        // set initial balance
+        if (!(key.id in this.currentBalance) && change === 0) {
+            this.currentBalance[key.id] = key.startBalance
+        }
+
+        if (key.id in this.currentBalance && change !== 0) {
+            this.currentBalance[key.id] = this.currentBalance[key.id] + change
+        }
+
+    }
+
+    addBuyOrder(key: Key, order: Order, price: number): void {
+        const o = { ...order }
+        o.price = price
         //this.buyOrders.push(order)
-        this.buyOrders[order.cid] = order
+        if(!(key.id in this.buyOrders)) {
+            this.buyOrders[key.id] = []
+        }
+        this.buyOrders[key.id][o.cid] = o
     }
 
-    setCurrentTimeFrame(timeframe: string): void {
-        this.currentTimeFrame = timeframe
+    setCurrentTimeFrame(key: Key): void {
+        this.currentTimeFrame[key.id] = key.timeframe
     }
 
-    getCurrentTimeFrame(): string {
-        if (this.currentTimeFrame) {
-            return this.currentTimeFrame
+    getCurrentTimeFrame(key: Key): string {
+        if (this.currentTimeFrame && this.currentTimeFrame[key.id]) {
+            return this.currentTimeFrame[key.id]
         }
 
         return
     }
 
-    getSellOrder(): Order {
-        if (this.sellOrders.length > 0) {
-            return this.sellOrders[0]
+    getSellOrder(key: Key): Order {
+        if (key.id in this.sellOrders) {
+            return this.sellOrders[key.id][0]
         }
     }
 
-    getBuyOrders(): Order[] {
-        return this.buyOrders
+    getBuyOrders(key: Key): Order[] {
+        return this.buyOrders[key.id]
     }
 
-    getNextBuyOrderId(): number {
-        if (this.buyOrders.length === 0) {
+    getNextBuyOrderId(key: Key): number {
+        if (!(key.id in this.buyOrders) || this.buyOrders[key.id].length < 1) {
             return 101 // 101 is always first order
         }
 
-        const potentialOrderId = this.buyOrders[this.buyOrders.length - 1].cid + 1
-        if (potentialOrderId > 120) {
+        const potentialOrderId = this.buyOrders[key.id][this.buyOrders[key.id].length - 1].cid + 1
+        if (potentialOrderId > key.orderlimit) {
             return 0 // no more orders
         }
-        return this.buyOrders[this.buyOrders.length - 1].cid + 1
+        return potentialOrderId
     }
 
-    getLastBuyOrder(): Order {
-        return this.buyOrders[this.buyOrders.length - 1]
+    getLastBuyOrder(key: Key): Order {
+        if (key.id in this.buyOrders) {
+            return this.buyOrders[key.id][this.buyOrders[key.id].length - 1]
+        }
     }
 
-    getLastUnFilledBuyOrderId(): number {
-        const lastBuyOrder = this.getLastBuyOrder()
+    getLastUnFilledBuyOrderId(key: Key): number {
+        const lastBuyOrder = this.getLastBuyOrder(key)
         if (lastBuyOrder) {
             if (typeof (lastBuyOrder.status) == 'undefined') {
                 return lastBuyOrder.cid
@@ -73,100 +93,114 @@ export class OrderCycleService {
         return 0
     }
 
-    getBuyOrderByCid(cid: number): Order {
-        return this.buyOrders[cid]
+    getBuyOrderByCid(key: Key, cid: number): Order {
+        return this.buyOrders[key.id][cid]
     }
 
-    buyOrderBought(buyOrder: Order): void {
+    buyOrderBought(key: Key, buyOrder: Order): void {
         buyOrder.status = 'filled'
-        this.buyOrders[buyOrder.cid] = buyOrder
+        this.buyOrders[key.id][buyOrder.cid] = buyOrder
 
-        this.setTotalAmount()
-        this.setTotalValue()
+        this.setTotalAmount(key)
+        this.setTotalValue(key)
 
-        this.logService.setData([
-            this.totalAmount,
-            this.totalValue,
+        // set balance
+        const val = buyOrder.amount * buyOrder.price
+        this.setCurrentBalance(key, (val - val * 2))
+        this.logService.setData(key, [
+            this.currentBalance[key.id]
+        ], ['balance'])
+
+        this.logService.setData(key, [
+            this.totalAmount[key.id],
+            this.totalValue[key.id],
             buyOrder.cid,
             buyOrder.price,
             (buyOrder.price * buyOrder.amount) * 0.001
         ], ['total_amount', 'total_value', 'bob_cid', 'bob_price', 'bob_fee'])
 
-        this.setSellOrder(buyOrder.symbol)
+        this.setSellOrder(key, buyOrder.symbol)
     }
 
-    sellOrderSold(): void {
+    sellOrderSold(key: Key): void {
+        /*
         const cycle: OrderCycle = {
-            buyOrders: this.buyOrders,
-            sellOrder: this.sellOrders[0],
-            totalAmount: this.totalAmount,
-            totalValue: this.totalValue
+            buyOrders: this.buyOrders[key.id],
+            sellOrder: this.sellOrders[key.id][0],
+            totalAmount: this.totalAmount[key.id],
+            totalValue: this.totalValue[key.id]
         }
-        this.orderCycles.addOrderCycle(cycle)
+        this.orderCycles.addOrderCycle(key, cycle)
+        */
 
-        const buyOrder = this.getLastBuyOrder()
+        const buyOrder = this.getLastBuyOrder(key)
 
-        this.logService.setData([
-            this.totalAmount * this.sellOrders[0].price * buyOrder.meta.target,
-            (this.sellOrders[0].price * this.totalAmount) * 0.001
+        this.logService.setData(key, [
+            this.totalAmount[key.id] * this.sellOrders[key.id][0].price * buyOrder.meta.target,
+            (this.sellOrders[key.id][0].price * this.totalAmount[key.id]) * 0.001
         ], ['profit', 'so_fee'])
 
-        this.resetCycle()
+        this.setCurrentBalance(key, this.sellOrders[key.id][0].price * this.sellOrders[key.id][0].amount)
+        this.logService.setData(key, [
+            this.currentBalance[key.id]
+        ], ['balance'])
+
+        this.resetCycle(key)
     }
 
-    private resetCycle(): void {
-        this.buyOrders = []
-        this.sellOrders = []
-        this.totalAmount = 0
-        this.totalValue = 0
+    private resetCycle(key: Key): void {
+        this.buyOrders[key.id] = []
+        this.sellOrders[key.id] = []
+        this.totalAmount[key.id] = 0
+        this.totalValue[key.id] = 0
     }
 
-    timeFrameChanged(): boolean {
-        if (this.buyOrders[this.buyOrders.length - 1].meta.timeframe != this.currentTimeFrame) {
+    timeFrameChanged(key: Key): boolean {
+        if (this.buyOrders[key.id][this.buyOrders[key.id].length - 1].meta.timeframe != this.currentTimeFrame[key.id]) {
             return true
         }
 
         return false
     }
 
-    getLastOrderTimeFrame(): string {
-        return this.buyOrders[this.buyOrders.length - 1].meta.timeframe
+    getLastOrderTimeFrame(key: Key): string {
+        return this.buyOrders[key.id][this.buyOrders.length - 1].meta.timeframe
     }
 
-    private setSellOrder(symbol: string) {
-        this.sellOrders = []
-        this.sellOrders.push({
+    private setSellOrder(key: Key, symbol: string) {
+        this.sellOrders[key.id] = []
+        this.sellOrders[key.id].push({
             cid: Date.now(),
             type: 'LIMIT',
-            amount: this.totalAmount, // should be string when sending to bfx
+            amount: this.totalAmount[key.id], // should be string when sending to bfx
             symbol: symbol,
-            price: this.calcSellOrderPrice()
+            price: this.calcSellOrderPrice(key)
         })
     }
 
-    private setTotalAmount(): void {
+    private setTotalAmount(key: Key): void {
         let totalAmount = 0
-        for (const buyOrder of this.buyOrders) {
+        for (const buyOrder of this.buyOrders[key.id]) {
             if (buyOrder) {
                 totalAmount = totalAmount + buyOrder.amount
             }
         }
-        this.totalAmount = this.round(totalAmount, 10000)
+        this.totalAmount[key.id] = this.round(totalAmount, 10000)
     }
 
-    private setTotalValue(): void {
+    private setTotalValue(key: Key): void {
         let totalValue = 0
-        for (const buyOrder of this.buyOrders) {
+        for (const buyOrder of this.buyOrders[key.id]) {
             if (buyOrder) {
                 totalValue = totalValue + (buyOrder.amount * buyOrder.price)
             }
         }
-        this.totalValue = this.round(totalValue)
+        this.totalValue[key.id] = this.round(totalValue)
     }
 
-    private calcSellOrderPrice(): number {
-        const buyOrder = this.getLastBuyOrder()
-        const price = (this.totalValue / this.totalAmount) + ((this.totalValue / this.totalAmount) * buyOrder.meta.target)
+    private calcSellOrderPrice(key: Key): number {
+        const buyOrder = this.getLastBuyOrder(key)
+        const price = (this.totalValue[key.id] / this.totalAmount[key.id]) + ((this.totalValue[key.id] / this.totalAmount[key.id]) * buyOrder.meta.target)
         return this.round(price)
     }
 

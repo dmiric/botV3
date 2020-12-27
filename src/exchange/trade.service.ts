@@ -40,11 +40,10 @@ export class TradeService {
     ) { }
 
     trade(key: Key): void {
-        this.logService.setKey(key)
         const indicatorOffset = key.indicatorOffset
 
         //if (recruise == 0) {
-        this.orderCycleService.setCurrentTimeFrame(key.timeframe)
+        this.orderCycleService.setCurrentTimeFrame(key)
         this.indicatorService.init(indicatorOffset)
         // }
 
@@ -89,10 +88,10 @@ export class TradeService {
                             if (order.cid == 101) {
                                 const buyOrder = this.orderCycleService.getBuyOrderByCid(101)
                                 this.orderCycleService.buyOrderBought(buyOrder)
-                                this.logService.setData([++this.bought], ['bob_count'])
+                                this.logService.setData(key, [++this.bought], ['bob_count'])
                             }
 
-                            this.logService.setData([
+                            this.logService.setData(key, [
                                 candleSet[0].mts,
                                 orderId,
                                 buyPrice,

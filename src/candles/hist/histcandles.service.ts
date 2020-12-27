@@ -6,7 +6,6 @@ import * as os from 'os';
 import { Order } from '../../interfaces/order.model'
 import { Period } from '../../interfaces/period.model'
 import { ObjectMeta } from '../../interfaces/objectmeta.model'
-import { convertArrayToCSV } from 'convert-array-to-csv'
 import * as fse from 'fs-extra'
 import { padCandles } from 'bfx-api-node-util'
 import { candleWidth } from 'bfx-hf-util'
@@ -56,7 +55,7 @@ export class HistCandlesService {
                     for (let i = 0; i < 8; i++) {
                         let splitEnd = startTime + (offset * (i + 1))
 
-                        if(splitEnd > endTime) {
+                        if (splitEnd > endTime) {
                             splitEnd = endTime
                             timeSplits.push([startTime + (offset * i), splitEnd])
                             break;
@@ -69,8 +68,10 @@ export class HistCandlesService {
 
                     for (const timeSplit of timeSplits) {
                         csv = await this.processRestData(pathParamsData, candleWidthVal, timeSplit[0], timeSplit[1])
-                        stream.write(csv + "\n");
-                        console.log('Saving 1m candles: ' + timeSplit[0] + ':' + timeSplit[1] + ' ' + filePath);
+                        if (csv != 'error') {
+                            stream.write(csv + ',');
+                            console.log('Saving 1m candles: ' + timeSplit[0] + ':' + timeSplit[1] + ' ' + filePath);
+                        }
                     }
                     stream.end();
                     continue;
@@ -92,16 +93,22 @@ export class HistCandlesService {
         return "done";
     }
 
-    async processRestData(pathParamsData: string, candleWidthVal: number, startTime: number, endTime: number): Promise<string>  {
+    async processRestData(pathParamsData: string, candleWidthVal: number, startTime: number, endTime: number): Promise<string> {
         const data = await this.getRestData(pathParamsData, startTime, endTime);
+        if (data[0] == 'error') {
+            return 'error'
+        }
         const padedCandles = padCandles(data, candleWidthVal)
         // remove last candle because it's from the next month
         padedCandles.pop()
 
         //const header = ["mts", "open", "close", "high", "low", "volume"]
-        return convertArrayToCSV(padedCandles, {
-            separator: ','
-        });
+        // return convertArrayToCSV(padedCandles, {
+        //     separator: ','
+        // });
+
+        const string = JSON.stringify(padedCandles)
+        return string.substring(1, string.length - 1);
     }
 
     getTimeFrames(orders: Order[]): string[] {
@@ -167,7 +174,7 @@ export class HistCandlesService {
             startMonth = 11;
             endMonth = 11; // ovo je 12 mjesec
 
-        } while (year > 2015);
+        } while (year > 2016);
 
         return periods;
     }

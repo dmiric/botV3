@@ -29,6 +29,11 @@ export class ArgvService {
                 alias: 'l',
                 default: false,
                 description: 'Run o live exchange.'
+            },
+            orderlimit: {
+                alias: 'ol',
+                default: 120,
+                description: 'Run o live exchange.'
             }
           })
             .argv;
@@ -54,5 +59,9 @@ export class ArgvService {
 
     isLive(): number {
         return this.argv.live
+    }
+
+    getOrderLimit(): number {
+        return this.argv.orderlimit
     }
 }

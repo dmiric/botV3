@@ -32,21 +32,33 @@ async function bootstrap() {
 
   // these keys should be returned by the key service
   const key: Key = {
+    id: 'id' + Math.floor(Math.random() * (999999 - 0 + 1) + 0),
+    logDates: [],
     trade: "trade",
     timeframe: firstOrder.meta.timeframe, // should be first order timeframe
     symbol: firstOrder.symbol,
     indicatorOffset: argvService.getIndicatorOffset(),
     start: dates[0],
-    end: dates[1]
+    end: dates[1],
+    orderlimit: 120, // argvService.getOrderLimit()
+    startBalance: 20000
   }
 
   if (argvService.isLive()) {
     tradeService.trade(key)
   } else {
     await histCandlesService.prepareHistData(ordersService.getOrders());
-    testerService.testingCycle(key)
+
+    const testPeriods = readXlsService.getTestTimePeriods()    
+    for (const period of testPeriods) {
+      key.id = 'id' +  Math.floor(Math.random() * (999999 - 0 + 1) + 0);
+      key.start = period[0]
+      key.end = period[1]
+      key.logDates = period
+      testerService.testingCycle({...key}, 0)
+    }
   }
 
-  
+  console.log(new Date())
 }
 bootstrap();

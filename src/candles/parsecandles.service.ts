@@ -9,20 +9,15 @@ import { candleWidth } from 'bfx-hf-util'
 export class ParseCandlesService {
 
     private keepHistCandles = 2000
-    private histCandles: Candle[] = [];
-    private candleWidthVal: number
 
     handleCandleStream(data: number[][], key: Key, candleSet: Candle[]): Candle[] {
-        if (candleSet.length > 0) {
-            this.histCandles = candleSet;
-        } else {
-            this.histCandles = []
-        }
-        this.setCandleWidth(key)
+        const candleWidthVal = candleWidth(key.timeframe)
 
-        if (!this.isCandle(data)) {
-            return;
+        const set = this.parseSet(data)
+        if(set.length > 0) {
+            return set; 
         }
+
         const singleCandleRaw = <Array<any>>data[0];
         const candle = this.convertToObject(<Array<number>>singleCandleRaw)
         //console.log(candle)
@@ -33,19 +28,19 @@ export class ParseCandlesService {
         const diff = currentTimestamp - candle.mts;
 
         // if there are no candles in history push first that occures in the stream
-        if (this.histCandles.length < 1) {
-            this.histCandles.push(candle);
+        if (candleSet.length < 1) {
+            candleSet.push(candle);
         }
 
         // push all unique closed candles to the history
-        const previousCandle = this.histCandles[this.histCandles.length - 1];
-        if (diff > this.candleWidthVal && previousCandle.mts !== candle.mts) {
-            this.histCandles.push(candle);
+        const previousCandle = candleSet[candleSet.length - 1];
+        if (diff > candleWidthVal && previousCandle.mts !== candle.mts) {
+            candleSet.push(candle);
             // insert service that checks for pattern here
-            this.trimHistCandles();
+            candleSet = this.trimHistCandles(candleSet);
         }
 
-        return this.histCandles;
+        return candleSet;
     }
 
     // move this to separate candle.service that extends Candle?
@@ -62,35 +57,21 @@ export class ParseCandlesService {
         return candleWidth(timeframe)
     }
 
-    private isCandle(data: number[][]): boolean {
+    private parseSet(data: number[][]): Candle[] {
+        const candleSet: Candle[] = [];
         if (data.length > 6) {
-            this.populateHistCandles(data)
-            return false;
+            const keep: number[][] = data.slice(-Math.abs(this.keepHistCandles));
+            keep.forEach(candleData => {
+                candleSet.push(this.convertToObject(candleData));
+            });
         }
 
-        if (typeof data[0][0] === 'number') {
-            // is a single candle
-            return true;
-        }
-
-        return false;
-    }
-
-    private populateHistCandles(data: number[][]): void {
-        const keep: number[][] = data.slice(-Math.abs(this.keepHistCandles));
-        keep.forEach(candleData => {
-            this.histCandles.push(this.convertToObject(candleData));
-        });
+        return candleSet;
     }
 
     // keep this.keepHistCandles candles in this.histCandles
-    private trimHistCandles(): void {
-        this.histCandles = this.histCandles.slice(-Math.abs(this.keepHistCandles))
-    }
-
-    private setCandleWidth(key: Key): void {
-        // calculate candle width in ms
-        this.candleWidthVal = candleWidth(key.timeframe)
+    private trimHistCandles(candleSet: Candle[]): Candle[] {
+        return candleSet.slice(-Math.abs(this.keepHistCandles))
     }
 
 }

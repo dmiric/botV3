@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common'
 import { OrdersService } from '../orders/orders.service'
 import { Candle } from '../interfaces/candle.model'
 import { OrderCycleService } from '../orders/ordercycle.service'
+import { Key } from '../interfaces/key.model'
+
 
 @Injectable()
 export class BencBehaviourService {
@@ -10,9 +12,9 @@ export class BencBehaviourService {
 
     // do this some day if we start working with more behaviours
     // https://stackoverflow.com/questions/53776882/how-to-handle-nestjs-dependency-injection-when-extending-a-class-for-a-service
-    public nextOrderIdThatMatchesRules(candles: Candle[]): number {
+    public nextOrderIdThatMatchesRules(candles: Candle[], key: Key): number {
 
-        const nextOrderId = this.ordersCycle.getNextBuyOrderId()
+        const nextOrderId = this.ordersCycle.getNextBuyOrderId(key)
         // in case this is the first order return it right away
         if (nextOrderId === 101) {
             return nextOrderId
@@ -47,7 +49,7 @@ export class BencBehaviourService {
         const currentPrice = this.findLowestPrice(candleStack, 'low')
         const nextOrder = this.ordersService.getOrder(nextOrderId)
         // if order is other than frist one check if currentPrice is low enough
-        if (this.isPriceLowEnough(currentPrice)) {
+        if (this.isPriceLowEnough(key, currentPrice)) {
             return nextOrder.cid
         }
 
@@ -59,8 +61,8 @@ export class BencBehaviourService {
         return this.findLowestPrice(candles, 'low')
     }
 
-    private isPriceLowEnough(price: number): boolean {
-        const lastOrder = this.ordersCycle.getLastBuyOrder()
+    private isPriceLowEnough(key: Key, price: number): boolean {
+        const lastOrder = this.ordersCycle.getLastBuyOrder(key)
         const conditionPrice: number = lastOrder.price - (lastOrder.price * lastOrder.meta.safeDistance)
 
         if (price < conditionPrice) {

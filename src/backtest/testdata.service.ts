@@ -23,8 +23,13 @@ export class TestDataService {
         if(candles) {
             return this.removeCandlesBeforeStart(candles, startTime)
         } else {
-            const file = this.getCandlesFile(path)
-            const candles = this.convertToArray(file)
+            //console.log(path)
+            let file = this.getCandlesFile(path)
+            if( file.charAt( file.length - 1 ) === ',' ) {
+                file = file.substring(0, file.length - 1 );
+            }
+            //const candles = this.convertToArray(file)
+            const candles = JSON.parse('[' + file + ']')
             this.setCache(path, candles)
             return this.removeCandlesBeforeStart(candles, startTime)
         }   

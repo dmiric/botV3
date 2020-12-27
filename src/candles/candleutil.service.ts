@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { candleWidth } from 'bfx-hf-util'
+import { Key } from '../interfaces/key.model';
 
 const _last = require('lodash/last')
 const _isFinite = require('lodash/isFinite')
@@ -61,6 +62,10 @@ export class CandleUtilService {
         }
 
         return Number(alignedMTS)
+    }
+
+    public calcCandleNumber(start: number, end: number, timeframe: string): number {
+        return (end - start) / candleWidth(timeframe)
     }
 
 }
