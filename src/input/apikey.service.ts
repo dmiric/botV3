@@ -32,7 +32,8 @@ export class ApiKeyService {
         const filePath = path.join(this.cryptoXlsDir, fileName)
 
         if(this.fileAccess(filePath)) {
-          const rawData = fs.readFileSync(filePath, "utf8");
+          let rawData = fs.readFileSync(filePath, "utf8");
+          rawData = rawData.replace(/(\r\n|\n|\r)/gm,"");
           console.log("|" + rawData + '|')
           return rawData.split(',')      
         }
