@@ -2,6 +2,7 @@ Object.assign(global, { WebSocket: require('ws') });
 
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
+/*
 import { CandlesModule } from './candles/candles.module'
 import { Key } from './interfaces/key.model'
 import { OrdersModule } from './orders/orders.module'
@@ -14,6 +15,7 @@ import { ReadxlsService } from './input/readxls.service'
 import { ArgvService } from './input/argv.service'
 import { ExchangeModule } from './exchange/exchange.module';
 import { TradeService } from './exchange/trade.service';
+*/
 
 
 async function bootstrap() {

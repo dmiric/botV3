@@ -1,22 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { ArgvService } from '../input/argv.service';
-import { ReadxlsService } from '../input/readxls.service';
 import { Order } from '../interfaces/order.model';
 import { Key } from '../interfaces/key.model';
 
 
 @Injectable()
+// refactor this Service to BuyOrderService
 export class OrdersService {
 
     private availableForPosition = [];
-
     private orders: Order[];
 
-    constructor(private readXls: ReadxlsService, private argvService: ArgvService) {
-        if (!this.orders) {
-            this.orders = this.readXls.readOrders()
-        }
-
+    constructor() {
         this.availableForPosition[101] = 1.000000;
         this.availableForPosition[102] = 1.147962;
         this.availableForPosition[103] = 1.317818;
