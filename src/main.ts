@@ -15,6 +15,14 @@ import { ArgvService } from './input/argv.service'
 import { ExchangeModule } from './exchange/exchange.module';
 import { TradeService } from './exchange/trade.service';
 
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+}
+bootstrap();
+
+/*
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   await app.init();
@@ -40,12 +48,12 @@ async function bootstrap() {
     indicatorOffset: argvService.getIndicatorOffset(),
     start: dates[0],
     end: dates[1],
-    orderlimit: 120, // argvService.getOrderLimit()
+    orderlimit: argvService.getOrderLimit(),
     startBalance: 20000
   }
 
   if (argvService.isLive()) {
-    tradeService.trade(key)
+    //tradeService.trade(key)
   } else {
     await histCandlesService.prepareHistData(ordersService.getOrders());
 
@@ -62,3 +70,6 @@ async function bootstrap() {
   console.log(new Date())
 }
 bootstrap();
+
+*/
+

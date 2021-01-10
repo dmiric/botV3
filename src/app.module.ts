@@ -1,3 +1,5 @@
+import { HookService } from './input/hook.service';
+import { HookController } from './input/hook.controller';
 import { TradeService } from './exchange/trade.service';
 import { ExchangeModule } from './exchange/exchange.module';
 import { EmaService } from './indicators/indicators/ema.service';
@@ -34,8 +36,10 @@ import { AppService } from './app.service';
     IndicatorsModule,
     InputModule,
     CandlesModule,],
-  controllers: [AppController],
+  controllers: [
+    HookController, AppController],
   providers: [
+    HookService,
     TradeService,
     EmaService,
     BencBehaviourService,

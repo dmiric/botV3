@@ -1,10 +1,10 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { BehaviourModule } from '../behaviour/behaviour.module';
-import { CandlesModule } from 'src/candles/candles.module';
-import { InputModule } from 'src/input/input.module';
-import { LogModule } from 'src/log/log.module';
-import { OrdersModule } from 'src/orders/orders.module';
-import { IndicatorsModule } from 'src/indicators/indicators.module';
+import { CandlesModule } from '../candles/candles.module';
+import { InputModule } from '../input/input.module';
+import { LogModule } from '../log/log.module';
+import { OrdersModule } from '../orders/orders.module';
+import { IndicatorsModule } from '../indicators/indicators.module';
 import { TradeService } from './trade.service';
 
 @Module({

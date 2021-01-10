@@ -39,7 +39,17 @@ export class OrderCycleService {
         if(!(key.id in this.buyOrders)) {
             this.buyOrders[key.id] = []
         }
-        this.buyOrders[key.id][o.cid] = o
+        this.buyOrders[key.id].push(o)
+    }
+
+    updateBuyOrder(key: Key, cid: number, data: any): void {
+        const o = this.getBuyOrderByCid(key, cid)
+        if('price' in data) {
+            o.price = data.price
+        }
+        if('tradeExecuted' in data) {
+            o.meta.tradeExecuted = data.tradeExecuted
+        }
     }
 
     setCurrentTimeFrame(key: Key): void {
@@ -69,7 +79,7 @@ export class OrderCycleService {
             return 101 // 101 is always first order
         }
 
-        const potentialOrderId = this.buyOrders[key.id][this.buyOrders[key.id].length - 1].cid + 1
+        const potentialOrderId = this.buyOrders[key.id][this.buyOrders[key.id].length - 1].meta.id + 1
         if (potentialOrderId > key.orderlimit) {
             return 0 // no more orders
         }
@@ -85,8 +95,8 @@ export class OrderCycleService {
     getLastUnFilledBuyOrderId(key: Key): number {
         const lastBuyOrder = this.getLastBuyOrder(key)
         if (lastBuyOrder) {
-            if (typeof (lastBuyOrder.status) == 'undefined') {
-                return lastBuyOrder.cid
+            if (lastBuyOrder.meta.tradeExecuted === false) {
+                return lastBuyOrder.meta.id
             }
         }
 
@@ -94,7 +104,11 @@ export class OrderCycleService {
     }
 
     getBuyOrderByCid(key: Key, cid: number): Order {
-        return this.buyOrders[key.id][cid]
+        for (const order of this.buyOrders[key.id]) {
+            if(order.cid === cid) {
+                return order
+            }
+        }
     }
 
     buyOrderBought(key: Key, buyOrder: Order): void {
@@ -122,7 +136,11 @@ export class OrderCycleService {
         this.setSellOrder(key, buyOrder.symbol)
     }
 
-    sellOrderSold(key: Key): void {
+    setSellOrderTrailingPrice(key: Key, trailingPrice: number): void {
+        this.sellOrders[key.id][0].meta.trailingPrice = trailingPrice;
+    }
+
+    sellOrderSold(key: Key, price: number): void {
         /*
         const cycle: OrderCycle = {
             buyOrders: this.buyOrders[key.id],
@@ -136,16 +154,23 @@ export class OrderCycleService {
         const buyOrder = this.getLastBuyOrder(key)
 
         this.logService.setData(key, [
-            this.totalAmount[key.id] * this.sellOrders[key.id][0].price * buyOrder.meta.target,
-            (this.sellOrders[key.id][0].price * this.totalAmount[key.id]) * 0.001
+            this.totalAmount[key.id] * price * buyOrder.meta.target,
+            (price * this.totalAmount[key.id]) * 0.001
         ], ['profit', 'so_fee'])
 
-        this.setCurrentBalance(key, this.sellOrders[key.id][0].price * this.sellOrders[key.id][0].amount)
+        this.setCurrentBalance(key, price * this.sellOrders[key.id][0].amount)
         this.logService.setData(key, [
             this.currentBalance[key.id]
         ], ['balance'])
 
         this.resetCycle(key)
+    }
+
+    public finishOrderCycle(key: Key): void {
+        this.buyOrders = []
+        this.sellOrders = []
+        this.totalAmount = []
+        this.totalValue = []    
     }
 
     private resetCycle(key: Key): void {
@@ -174,7 +199,8 @@ export class OrderCycleService {
             type: 'LIMIT',
             amount: this.totalAmount[key.id], // should be string when sending to bfx
             symbol: symbol,
-            price: this.calcSellOrderPrice(key)
+            price: this.calcSellOrderPrice(key),
+            meta: { trailingPrice: 0 }  
         })
     }
 

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { OrdersModule } from 'src/orders/orders.module';
+import { OrdersModule } from '../orders/orders.module';
 import { BencBehaviourService } from './bencbehaviour.service';
 
 @Module({

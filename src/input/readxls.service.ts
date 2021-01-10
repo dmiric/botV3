@@ -35,7 +35,7 @@ export class ReadxlsService {
             const periods: number[][] = [];
 
             for (let i = 1; i < 1000; i++) {
-                if(this.rawXlsData[0].data[i] == 'undefined' || this.rawXlsData[0].data[i] == 'undefined') {
+                if (!(this.rawXlsData[0].data[i])) {
                     break;
                 }
                 const start = this.rawXlsData[0].data[i][2]

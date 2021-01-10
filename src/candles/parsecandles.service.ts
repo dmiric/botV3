@@ -10,7 +10,7 @@ export class ParseCandlesService {
 
     private keepHistCandles = 2000
 
-    handleCandleStream(data: number[][], key: Key, candleSet: Candle[]): Candle[] {
+    handleCandleStream(data: number[][][], key: Key, candleSet: Candle[]): Candle[] {
         const candleWidthVal = candleWidth(key.timeframe)
 
         const set = this.parseSet(data)
@@ -18,7 +18,7 @@ export class ParseCandlesService {
             return set; 
         }
 
-        const singleCandleRaw = <Array<any>>data[0];
+        const singleCandleRaw = <Array<any>>data[1];
         const candle = this.convertToObject(<Array<number>>singleCandleRaw)
         //console.log(candle)
 
@@ -57,10 +57,10 @@ export class ParseCandlesService {
         return candleWidth(timeframe)
     }
 
-    private parseSet(data: number[][]): Candle[] {
+    private parseSet(data: number[][][]): Candle[] {
         const candleSet: Candle[] = [];
-        if (data.length > 6) {
-            const keep: number[][] = data.slice(-Math.abs(this.keepHistCandles));
+        if (data[1].length > 6) {
+            const keep: number[][] = data[1].slice(-Math.abs(this.keepHistCandles));
             keep.forEach(candleData => {
                 candleSet.push(this.convertToObject(candleData));
             });

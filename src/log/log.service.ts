@@ -5,8 +5,8 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fse from 'fs-extra'
 import { Key } from '../interfaces/key.model';
-import { ArgvService } from 'src/input/argv.service';
-import { KeyService } from 'src/candles/key.service';
+import { ArgvService } from '../input/argv.service';
+import { KeyService } from '../candles/key.service';
 
 @Injectable()
 export class LogService {
@@ -59,7 +59,7 @@ export class LogService {
         const lastBuyOrder = this.last(shortLog, 'bob_cid')
         const elapsedDays = (key.logDates[1] - key.logDates[0]) / (1000 * 3600 * 24);
         const balance = this.last(shortLog, 'balance')
-        const monthlyProfitPercentage = this.lastSaleBalance(shortLog, key)
+        const monthlyInterest = this.lastSaleBalance(shortLog, key)
         console.log(JSON.stringify(buyNumberCount))
         console.log("Number of sells: " + sells)
         console.log("Profit: " + totalProfit.toFixed(2))
@@ -68,7 +68,7 @@ export class LogService {
         console.log("End price: " + shortLog[shortLog.length - 1]['close'])
         console.log("Balance: " + balance.toFixed(2) )
         console.log("Days: " + elapsedDays)
-        console.log("Monthly profit: " + monthlyProfitPercentage.toFixed(2) + "%")
+        console.log("Interest: M:" + monthlyInterest.toFixed(2) + "% Y:" + (monthlyInterest * 12).toFixed(2) + '%')
         console.log('----------------------------------------------------------------------------------')
         this.subTotalProfit = this.subTotalProfit + totalProfit
         console.log("Profit Subtotal:" + this.subTotalProfit.toFixed(2))
@@ -135,7 +135,8 @@ export class LogService {
             so_fee: 0,
             bob_fee: 0,
             indicator: '',
-            balance: ''
+            balance: '',
+            so_tr_price: ''
         }
 
         return item
@@ -229,6 +230,7 @@ export class LogService {
             { label: "Bo bought fee", value: "bob_fee" },
             { label: "Sell order ID", value: "so_cid" },
             { label: "Sell order price", value: "so_price" },
+            { label: "Trail. price", value: "so_tr_price" },
             { label: "Sell order fee", value: "so_fee" },
             { label: "Sells", value: "c_sells" },
             { label: "Total amount", value: "total_amount"},

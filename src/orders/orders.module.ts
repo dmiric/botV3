@@ -1,5 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { LogModule } from 'src/log/log.module';
+import { LogModule } from '../log/log.module';
 import { InputModule } from '../input/input.module';
 import { OrderService } from './order.service';
 import { OrderCycleService } from './ordercycle.service';

@@ -47,10 +47,10 @@ export class BencBehaviourService {
         const candleStack = candles;
         // find lowest low price in candle stack
         const currentPrice = this.findLowestPrice(candleStack, 'low')
-        const nextOrder = this.ordersService.getOrder(nextOrderId)
+        const nextOrder = this.ordersService.getOrder(key, nextOrderId, currentPrice)
         // if order is other than frist one check if currentPrice is low enough
         if (this.isPriceLowEnough(key, currentPrice)) {
-            return nextOrder.cid
+            return nextOrder.meta.id
         }
 
         // if all else fails return 0

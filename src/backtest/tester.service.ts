@@ -12,8 +12,8 @@ import { KeyService } from '../candles/key.service';
 import { OrderCycleService } from '../orders/ordercycle.service';
 import { CandleUtilService } from '../candles/candleutil.service';
 import { LogService } from '../log/log.service'
-import { BencBehaviourService } from 'src/behaviour/bencbehaviour.service'
-import { EmaService } from 'src/indicators/indicators/ema.service'
+import { BencBehaviourService } from '../behaviour/bencbehaviour.service'
+import { EmaService } from '../indicators/indicators/ema.service'
 
 
 @Injectable()
@@ -30,13 +30,12 @@ export class TesterService {
         private candleUtilService: CandleUtilService,
         private keyService: KeyService,
         private logService: LogService,
-        private indicatorService: EmaService,
-        private candleUtil: CandleUtilService
+        private indicatorService: EmaService
     ) {
     }
 
     testingCycle(key: Key, recruise = 0): null {
-        
+
         //const indicatorOffset = key.indicatorOffset
 
         if (recruise == 0) {
@@ -59,25 +58,25 @@ export class TesterService {
             this.logService.newLine(key)
             const currentCandle = this.parseCandlesService.convertToObject(candle)
             // this is a questionable hack to sort out missing candles
-            if(!currentCandle) {
+            if (!currentCandle) {
                 console.log(key)
                 throw new Error("Borked!");
                 //console.log("Results from: " + new Date(key.logDates[0]) + ' to ' + new Date(key.logDates[1]))
             }
             //this.indicatorService.update(currentCandle.close)
             const lastCandle = this.parseCandlesService.convertToObject(candles[candles.length - 1])
-/*
-            this.logService.setData([
-                currentCandle.mts,
-                new Date(currentCandle.mts),
-                currentCandle.open,
-                currentCandle.close,
-                currentCandle.high,
-                currentCandle.low,
-                this.indicatorService.getResult(),
-                key.timeframe
-            ], ['mts', 'datetime', 'open', 'close', 'high', 'low', 'indicator', 'timeframe'], 0)
-*/
+            /*
+                        this.logService.setData([
+                            currentCandle.mts,
+                            new Date(currentCandle.mts),
+                            currentCandle.open,
+                            currentCandle.close,
+                            currentCandle.high,
+                            currentCandle.low,
+                            this.indicatorService.getResult(),
+                            key.timeframe
+                        ], ['mts', 'datetime', 'open', 'close', 'high', 'low', 'indicator', 'timeframe'], 0)
+            */
             this.logService.setData(key, [
                 currentCandle.mts,
                 new Date(currentCandle.mts).toLocaleString(),
@@ -90,14 +89,14 @@ export class TesterService {
 
             // check if we reached end date
             if (endDate < currentCandle.mts) {
-                this.logService.writeXls(key)                
+                this.logService.writeXls(key)
                 return
             }
 
             // last candle in stack we need to get next file
             if (lastCandle.mts == currentCandle.mts) {
                 const alignedTimeStamp = this.candleUtilService.alignFuture(this.orderCycleService.getCurrentTimeFrame(key), currentCandle.mts)
-                
+
                 const newKey: Key = {
                     ...key,
                     timeframe: this.orderCycleService.getCurrentTimeFrame(key),
@@ -121,10 +120,20 @@ export class TesterService {
             if (this.orderCycleService.getSellOrder(key)) {
                 const sellOrder = this.orderCycleService.getSellOrder(key)
                 if (currentCandle.high > sellOrder.price) {
-                    this.orderCycleService.sellOrderSold(key)
-                    //console.log(new Date(currentCandle.mts).toISOString())
-                    candleSet = []
-                    this.logService.setData(key, [sellOrder.price, ++this.state[key.id].sold], ['so_price', 'c_sells'])
+
+                    const trailingPrice = currentCandle.high - ((currentCandle.high - sellOrder.price) / 1.2);
+                    this.logService.setData(key, [trailingPrice], ['so_tr_price'])
+
+                    if (trailingPrice > sellOrder.meta.trailingPrice) {
+                        this.orderCycleService.setSellOrderTrailingPrice(key, trailingPrice)
+
+                    } else {
+                        this.orderCycleService.sellOrderSold(key, currentCandle.high)
+
+                        //console.log(new Date(currentCandle.mts).toISOString())
+                        candleSet = []
+                        this.logService.setData(key, [sellOrder.price, ++this.state[key.id].sold], ['so_price', 'c_sells'])
+                    }
                     //console.log("Sell: " + new Date(currentCandle.mts))
                     //console.log(this.currentEstimate)
                 }
@@ -148,9 +157,8 @@ export class TesterService {
                 const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet, key)
                 // await new Promise(r => setTimeout(r, 500));
                 if (orderId) {
-                    const order = { ...this.ordersService.getOrder(orderId) }
-
                     let buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
+                    const order = { ...this.ordersService.getOrder(key, orderId, buyPrice) }
 
                     if (order.cid == 101) {
                         buyPrice = currentCandle.open
