@@ -13,7 +13,7 @@ import { Payload } from "src/interfaces/payload.model";
 export class ApiKeyService {
     
     private payload: Payload;
-    private cryptoXlsDir = path.join(os.homedir(),'Documents','CryptoXLS')
+    private cryptoXlsDir = path.join(os.homedir(),'Documents','Crypto')
 
     constructor(private argvService: ArgvService) { }
 
