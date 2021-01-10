@@ -28,7 +28,7 @@ export class ApiKeyService {
     }
 
     private readFile(): string[] {
-        const fileName = 'key_test.txt'
+        const fileName = 'key.txt'
         const filePath = path.join(this.cryptoXlsDir, fileName)
 
         if(this.fileAccess(filePath)) {
