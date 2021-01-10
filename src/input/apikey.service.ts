@@ -33,6 +33,7 @@ export class ApiKeyService {
 
         if(this.fileAccess(filePath)) {
           const rawData = fs.readFileSync(filePath, "utf8");
+          console.log("|" + rawData + '|')
           return rawData.split(',')      
         }
     }
