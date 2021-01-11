@@ -2,6 +2,8 @@ Object.assign(global, { WebSocket: require('ws') });
 
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
+import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston'
+import * as winston from 'winston';
 /*
 import { CandlesModule } from './candles/candles.module'
 import { Key } from './interfaces/key.model'
@@ -19,7 +21,24 @@ import { TradeService } from './exchange/trade.service';
 
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: WinstonModule.createLogger({
+      level: 'info',
+      format: winston.format.json(),
+      transports: [
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.timestamp(),
+            nestWinstonModuleUtilities.format.nestLike(),
+          ),
+        }),
+        new winston.transports.File({ filename: 'error.log', level: 'error' }),
+        new winston.transports.File({ filename: 'combined.log' }),
+        // other transports...
+      ],
+      // options (same as WinstonModule.forRoot() options)
+    })
+  });
   await app.listen(3000);
 }
 bootstrap();

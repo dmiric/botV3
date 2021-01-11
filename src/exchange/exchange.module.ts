@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module, forwardRef, Logger } from '@nestjs/common';
 import { BehaviourModule } from '../behaviour/behaviour.module';
 import { CandlesModule } from '../candles/candles.module';
 import { InputModule } from '../input/input.module';
@@ -10,7 +10,7 @@ import { TradeService } from './trade.service';
 @Module({
     imports: [BehaviourModule, CandlesModule, forwardRef(() => OrdersModule), InputModule, LogModule, IndicatorsModule],
     controllers: [],
-    providers: [TradeService],
+    providers: [TradeService, Logger],
     exports: [TradeService]
 
 })

@@ -1,10 +1,8 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Inject, Logger, LoggerService } from '@nestjs/common'
 import { Candle } from '../interfaces/candle.model'
 
 import { Key } from '../interfaces/key.model'
 import { ParseCandlesService } from '../candles/parsecandles.service'
-
-import { Order } from '../interfaces/order.model'
 
 import { OrdersService } from '../orders/orders.service';
 import { KeyService } from '../candles/key.service';
@@ -12,7 +10,6 @@ import { OrderCycleService } from '../orders/ordercycle.service';
 import { CandleUtilService } from '../candles/candleutil.service';
 import { LogService } from '../log/log.service'
 import { BencBehaviourService } from '../behaviour/bencbehaviour.service'
-import { EmaService } from '../indicators/indicators/ema.service'
 import { CandleSocketService } from '../candles/candlesocket.service'
 import { Subscription } from 'rxjs'
 
@@ -22,9 +19,6 @@ import { OrderSocketService } from '../orders/ordersocket.service'
 @Injectable()
 export class TradeService {
 
-    private sold = 0;
-    private count = 0;
-    private bought = 0;
     private tradeStatus = false;
     private candleSubscription: Subscription;
     private orderSubscription: Subscription;
@@ -40,7 +34,8 @@ export class TradeService {
         private keyService: KeyService,
         private logService: LogService,
         private candleSocketService: CandleSocketService,
-        private orderSocketService: OrderSocketService
+        private orderSocketService: OrderSocketService,
+        @Inject(Logger) private readonly logger: LoggerService
     ) { }
 
     getStatus(): boolean {
@@ -64,10 +59,11 @@ export class TradeService {
 
         this.candleSubscription = this.candleSocketService.messages$.subscribe(
             (message: string) => {
-                const trimmed = message.substring(0, 100)
-                console.log('candle socket:', trimmed)
+                //const trimmed = message.substring(0, 100)
+                // this.logger.log(message, 'candle socket')
                 // respond to server
                 const data = JSON.parse(message)
+                this.logger.log(data, 'candle socket')
 
                 if (data.event === "info") {
                     // if we just connected to the stream we find the last order we want to start from
@@ -89,8 +85,8 @@ export class TradeService {
 
                     // this is a questionable hack to sort out missing candles
                     if (!currentCandle) {
-                        console.log(key)
-                        throw new Error("Borked!");
+                        this.logger.log(key, 'candle socket key')
+                        this.logger.log("Borked!", "candle socket error")
                     }
 
                     // TODO: This price needs to be changed to real (current price???).
@@ -107,7 +103,6 @@ export class TradeService {
                                 // send buy order to the api here
                                 this.orderSocketService.makeOrder(order)
                                 this.orderCycleService.addBuyOrder(key, order, 0)
-                                this.logService.setData(key, [++this.bought], ['bob_count'])
                             } else {
                                 const buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
                                 order['price'] = buyPrice
@@ -123,25 +118,24 @@ export class TradeService {
             (error: Error) => {
                 const { message } = error
                 if (message === normalClosureMessage) {
-                    console.log('server closed the CANDLE websocket connection normally')
+                    this.logger.log("server closed the CANDLE websocket connection normally", "candle socket")
                 } else {
-                    console.log('CANDLE socket was disconnected due to error:', message)
+                    this.logger.log('CANDLE socket was disconnected due to error: ' + message, "candle socket error")
                 }
             },
             () => {
                 // The clean termination only happens in response to the last
                 // subscription to the observable being unsubscribed, any
-                //other closure is considered an error.
-                console.log('the CANDLE socket connection was closed in response to the user')
+                // other closure is considered an error.
+                this.logger.log("the CANDLE socket connection was closed in response to the user", "candle socket")
             },
         )
 
         this.orderSubscription = this.orderSocketService.messages$.subscribe(
-            (message: string) => {
-                const trimmed = message.substring(0, 66230)
-                console.log('order socket:', trimmed)
+            (message: string) => {                
                 // respond to server
                 const data = JSON.parse(message)
+                this.logger.log(data, "order socket")
 
                 if (data.event === "info") {
 
@@ -214,16 +208,16 @@ export class TradeService {
             (error: Error) => {
                 const { message } = error
                 if (message === normalClosureMessage) {
-                    console.log('server closed the ORDER websocket connection normally')
+                    this.logger.log("server closed the ORDER socket connection normally", "order socket")
                 } else {
-                    console.log('ORDER socket was disconnected due to error:', message)
+                    this.logger.log('ORDER socket was disconnected due to error: ' + message, "order socket error")
                 }
             },
             () => {
                 // The clean termination only happens in response to the last
                 // subscription to the observable being unsubscribed, any
                 //other closure is considered an error.
-                console.log('the ORDER socket connection was closed in response to the user')
+                this.logger.log("the ORDER socket connection was closed in response to the user", "order socket")
             },
         )
     }
