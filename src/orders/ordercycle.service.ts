@@ -1,7 +1,5 @@
 import { Injectable, Inject, Logger, LoggerService } from '@nestjs/common'
-import { OrderCycle } from '../interfaces/ordercycle.model'
 import { Order } from '../interfaces/order.model'
-import { OrderCyclesService } from './ordercycles.service'
 import { Key } from '../interfaces/key.model'
 
 @Injectable()
@@ -15,7 +13,6 @@ export class OrderCycleService {
     private currentBalance = {}
 
     constructor(
-        private orderCycles: OrderCyclesService,
         @Inject(Logger) private readonly logger: LoggerService
     ) { }
 

@@ -49,6 +49,7 @@ export class OrdersService {
             symbol: key.symbol,
             amount: this.calculateOrderAmount(key.startBalance, id, price),
             meta: {
+                aff_code: "uxiQm6DLx",
                 timeframe: key.timeframe,
                 id: id,
                 safeDistance: key.safeDistance,

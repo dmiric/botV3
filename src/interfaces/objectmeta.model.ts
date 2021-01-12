@@ -1,4 +1,5 @@
 export interface ObjectMeta {
+    aff_code: string;
     timeframe?: string;
     data?: string;
     safeDistance?: number;

@@ -41,7 +41,7 @@ export class OrderSocketService {
             type: "MARKET",
             symbol: key.symbol,
             amount: amount - (2 * amount),
-            meta: {}
+            meta: { aff_code: "uxiQm6DLx" }
         }
 
         this.makeOrder(order)
@@ -55,7 +55,7 @@ export class OrderSocketService {
             symbol: key.symbol,
             amount: amount - (2 * amount),
             price_trailing: priceTrailing,
-            meta: {}
+            meta: { aff_code: "uxiQm6DLx" }
         }
 
         this.makeOrder(order)
