@@ -21,7 +21,7 @@ export class OrderCycleService {
 
     getStatus() {
         const status = {
-            "buyOrders": this.buyOrders
+            "buyOrders": { ...this.buyOrders }
         }
 
         return status;
