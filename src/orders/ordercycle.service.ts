@@ -1,8 +1,7 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Inject, Logger, LoggerService } from '@nestjs/common'
 import { OrderCycle } from '../interfaces/ordercycle.model'
 import { Order } from '../interfaces/order.model'
 import { OrderCyclesService } from './ordercycles.service'
-import { LogService } from '../log/log.service'
 import { Key } from '../interfaces/key.model'
 
 @Injectable()
@@ -17,7 +16,7 @@ export class OrderCycleService {
 
     constructor(
         private orderCycles: OrderCyclesService,
-        private logService: LogService
+        @Inject(Logger) private readonly logger: LoggerService
     ) { }
 
     setCurrentBalance(key: Key, change = 0): void {
@@ -29,13 +28,12 @@ export class OrderCycleService {
         if (key.id in this.currentBalance && change !== 0) {
             this.currentBalance[key.id] = this.currentBalance[key.id] + change
         }
-
     }
 
     addBuyOrder(key: Key, order: Order, price: number): void {
         const o = { ...order }
         o.price = price
-        //this.buyOrders.push(order)
+
         if(!(key.id in this.buyOrders)) {
             this.buyOrders[key.id] = []
         }
@@ -121,10 +119,13 @@ export class OrderCycleService {
         // set balance
         const val = buyOrder.amount * buyOrder.price
         this.setCurrentBalance(key, (val - val * 2))
+        /*
         this.logService.setData(key, [
             this.currentBalance[key.id]
         ], ['balance'])
+        */
 
+        /*
         this.logService.setData(key, [
             this.totalAmount[key.id],
             this.totalValue[key.id],
@@ -132,6 +133,7 @@ export class OrderCycleService {
             buyOrder.price,
             (buyOrder.price * buyOrder.amount) * 0.001
         ], ['total_amount', 'total_value', 'bob_cid', 'bob_price', 'bob_fee'])
+        */
 
         this.setSellOrder(key, buyOrder.symbol)
     }
@@ -153,15 +155,19 @@ export class OrderCycleService {
 
         const buyOrder = this.getLastBuyOrder(key)
 
+        /*
         this.logService.setData(key, [
             this.totalAmount[key.id] * price * buyOrder.meta.target,
             (price * this.totalAmount[key.id]) * 0.001
         ], ['profit', 'so_fee'])
+        */
 
         this.setCurrentBalance(key, price * this.sellOrders[key.id][0].amount)
+        /*
         this.logService.setData(key, [
             this.currentBalance[key.id]
         ], ['balance'])
+        */
 
         this.resetCycle(key)
     }

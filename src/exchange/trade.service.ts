@@ -8,7 +8,6 @@ import { OrdersService } from '../orders/orders.service';
 import { KeyService } from '../candles/key.service';
 import { OrderCycleService } from '../orders/ordercycle.service';
 import { CandleUtilService } from '../candles/candleutil.service';
-import { LogService } from '../log/log.service'
 import { BencBehaviourService } from '../behaviour/bencbehaviour.service'
 import { CandleSocketService } from '../candles/candlesocket.service'
 import { Subscription } from 'rxjs'
@@ -32,7 +31,6 @@ export class TradeService {
         private ordersService: OrdersService,
         private candleUtilService: CandleUtilService,
         private keyService: KeyService,
-        private logService: LogService,
         private candleSocketService: CandleSocketService,
         private orderSocketService: OrderSocketService,
         @Inject(Logger) private readonly logger: LoggerService
@@ -55,82 +53,6 @@ export class TradeService {
         this.tradeStatus = true
         this.orderCycleService.setCurrentTimeFrame(key)
 
-        let candleSet: Candle[] = [];
-
-        this.candleSubscription = this.candleSocketService.messages$.subscribe(
-            (message: string) => {
-                //const trimmed = message.substring(0, 100)
-                // this.logger.log(message, 'candle socket')
-                // respond to server
-                const data = JSON.parse(message)
-                this.logger.log(data, 'candle socket')
-
-                if (data.event === "info") {
-                    // if we just connected to the stream we find the last order we want to start from
-                    // and we send a message to start the stream
-                    this.candleSocketService.setSubscription(key)
-                } else {
-                    if (data.event) {
-                        return;
-                    }
-
-                    if (data[1].length < 6) {
-                        return
-                    }
-
-                    this.logService.newLine(key)
-
-                    candleSet = this.parseCandlesService.handleCandleStream(data, key, candleSet)
-                    const currentCandle: Candle = candleSet[candleSet.length - 1]
-
-                    // this is a questionable hack to sort out missing candles
-                    if (!currentCandle) {
-                        this.logger.log(key, 'candle socket key')
-                        this.logger.log("Borked!", "candle socket error")
-                    }
-
-                    // TODO: This price needs to be changed to real (current price???).
-                    this.currentPrice = currentCandle.close;
-
-                    if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId(key)) {
-                        const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet, key)
-                        //const orderId = 101;
-                        // await new Promise(r => setTimeout(r, 500));
-                        if (orderId && this.orderSocketService.getSocketReadyState()) {
-                            const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
-
-                            if (order.meta.id == 101) {
-                                // send buy order to the api here
-                                this.orderSocketService.makeOrder(order)
-                                this.orderCycleService.addBuyOrder(key, order, 0)
-                            } else {
-                                const buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
-                                order['price'] = buyPrice
-                                this.orderSocketService.makeOrder(order)
-                            }
-
-                            candleSet = []
-                        }
-                    }
-
-                }
-            },
-            (error: Error) => {
-                const { message } = error
-                if (message === normalClosureMessage) {
-                    this.logger.log("server closed the CANDLE websocket connection normally", "candle socket")
-                } else {
-                    this.logger.log('CANDLE socket was disconnected due to error: ' + message, "candle socket error")
-                }
-            },
-            () => {
-                // The clean termination only happens in response to the last
-                // subscription to the observable being unsubscribed, any
-                // other closure is considered an error.
-                this.logger.log("the CANDLE socket connection was closed in response to the user", "candle socket")
-            },
-        )
-
         this.orderSubscription = this.orderSocketService.messages$.subscribe(
             (message: string) => {                
                 // respond to server
@@ -150,11 +72,12 @@ export class TradeService {
                     // ws: wallet snapshot
                     if (data[1] == 'ws') {
                         this.orderSocketService.setReadyState(true)
+                        this.candleStream(key)                        
                     }
 
                     // wu: wallet update
                     if (data[1] == 'wu') {
-
+                        // make orders that are not executed
                     }
 
                     // ps: position snapshot
@@ -218,6 +141,83 @@ export class TradeService {
                 // subscription to the observable being unsubscribed, any
                 //other closure is considered an error.
                 this.logger.log("the ORDER socket connection was closed in response to the user", "order socket")
+            },
+        )
+    }
+
+    private candleStream(key: Key) {
+        let candleSet: Candle[] = [];
+
+        this.candleSubscription = this.candleSocketService.messages$.subscribe(
+            (message: string) => {
+                //const trimmed = message.substring(0, 100)
+                // this.logger.log(message, 'candle socket')
+                // respond to server
+                const data = JSON.parse(message)
+
+                if (data.event === "info") {
+                    // if we just connected to the stream we find the last order we want to start from
+                    // and we send a message to start the stream
+                    this.candleSocketService.setSubscription(key)
+                } else {
+                    if (data.event) {
+                        this.logger.log(data, 'candle socket')
+                        return;
+                    }
+
+                    if (data[1].length < 6) {
+                        return
+                    }
+
+                    candleSet = this.parseCandlesService.handleCandleStream(data, key, candleSet)
+                    const currentCandle: Candle = candleSet[candleSet.length - 1]
+
+                    // this is a questionable hack to sort out missing candles
+                    if (!currentCandle) {
+                        this.logger.log(key, 'candle socket key')
+                        this.logger.log("Borked!", "candle socket error")
+                    }
+
+                    // TODO: This price needs to be changed to real (current price???).
+                    this.currentPrice = currentCandle.close;
+
+                    if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId(key)) {
+                        this.logger.log(data, 'candle socket')
+                        const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet, key)
+                        //const orderId = 101;
+                        // await new Promise(r => setTimeout(r, 500));
+                        if (orderId && this.orderSocketService.getSocketReadyState()) {
+                            const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
+
+                            if (order.meta.id == 101) {
+                                // send buy order to the api here
+                                this.orderSocketService.makeOrder(order)
+                                this.orderCycleService.addBuyOrder(key, order, 0)
+                            } else {
+                                const buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
+                                order['price'] = buyPrice
+                                this.orderSocketService.makeOrder(order)
+                            }
+
+                            candleSet = []
+                        }
+                    }
+
+                }
+            },
+            (error: Error) => {
+                const { message } = error
+                if (message === normalClosureMessage) {
+                    this.logger.log("server closed the CANDLE websocket connection normally", "candle socket")
+                } else {
+                    this.logger.log('CANDLE socket was disconnected due to error: ' + message, "candle socket error")
+                }
+            },
+            () => {
+                // The clean termination only happens in response to the last
+                // subscription to the observable being unsubscribed, any
+                // other closure is considered an error.
+                this.logger.log("the CANDLE socket connection was closed in response to the user", "candle socket")
             },
         )
     }

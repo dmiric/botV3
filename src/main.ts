@@ -39,7 +39,7 @@ async function bootstrap() {
       // options (same as WinstonModule.forRoot() options)
     })
   });
-  await app.listen(3000);
+  await app.listen(1221);
 }
 bootstrap();
 
