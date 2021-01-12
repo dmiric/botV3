@@ -182,11 +182,11 @@ export class TradeService {
                     this.currentPrice = currentCandle.close;
 
                     if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId(key)) {
-                        this.logger.log(data, 'candle socket')
                         const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet, key)
                         //const orderId = 101;
                         // await new Promise(r => setTimeout(r, 500));
                         if (orderId && this.orderSocketService.getSocketReadyState()) {
+                            this.logger.log(data, 'candle socket')
                             const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
 
                             if (order.meta.id == 101) {
