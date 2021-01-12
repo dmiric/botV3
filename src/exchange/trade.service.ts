@@ -23,6 +23,8 @@ export class TradeService {
     private orderSubscription: Subscription;
     private activePosition = [];
     private currentPrice = 0;
+    private lastSignal: Key;
+    private lastSignalTime;
 
     constructor(
         private parseCandlesService: ParseCandlesService,
@@ -36,11 +38,31 @@ export class TradeService {
         @Inject(Logger) private readonly logger: LoggerService
     ) { }
 
+    getStatusInfo() {
+        let status = {}
+        status = this.orderCycleService.getStatus()
+        status['tradeStatus'] = this.tradeStatus
+        status['activePosition'] = this.activePosition
+        status['lastSignal'] = this.lastSignal
+        status['lastSignalTime'] = this.lastSignalTime
+        return status;
+    }
+
     getStatus(): boolean {
         return this.tradeStatus;
     }
 
+    setLastSignal(key: Key): void {
+        this.lastSignal = key;
+        const d = new Date();
+        this.lastSignalTime = d.toString();
+
+        this.logger.log(this.lastSignal, "signal")
+        this.logger.log(this.lastSignalTime, "signal")
+    }
+
     closePosition(key: Key): void {
+        this.setLastSignal(key)
         // check if trade is active
         // check if position is positive
         // check if we are in profit over 0.5% - position[7]
@@ -50,6 +72,8 @@ export class TradeService {
     }
 
     trade(key: Key): void {
+        this.setLastSignal(key)
+
         this.tradeStatus = true
         this.orderCycleService.setCurrentTimeFrame(key)
 

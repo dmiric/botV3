@@ -19,6 +19,14 @@ export class OrderCycleService {
         @Inject(Logger) private readonly logger: LoggerService
     ) { }
 
+    getStatus() {
+        const status = {
+            "buyOrders": this.buyOrders
+        }
+
+        return status;
+    }
+
     setCurrentBalance(key: Key, change = 0): void {
         // set initial balance
         if (!(key.id in this.currentBalance) && change === 0) {

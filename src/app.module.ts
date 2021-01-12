@@ -1,3 +1,4 @@
+import { StatusController } from './input/status.controller';
 import { HookService } from './input/hook.service';
 import { HookController } from './input/hook.controller';
 import { TradeService } from './exchange/trade.service';
@@ -31,6 +32,7 @@ import { AppService } from './app.service';
     CandlesModule
   ],
   controllers: [
+    StatusController,
     HookController, AppController],
   providers: [
     Logger,
