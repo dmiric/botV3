@@ -63,7 +63,9 @@ export class BencBehaviourService {
 
     private isPriceLowEnough(key: Key, price: number): boolean {
         const lastOrder = this.ordersCycle.getLastBuyOrder(key)
-        const conditionPrice: number = lastOrder.price - (lastOrder.price * lastOrder.meta.key.safeDistance)
+        const conditionPrice: number = lastOrder.price - (lastOrder.price * key.safeDistance)
+
+        console.log("Is Price Low Enough: " + price + ":" + conditionPrice)
 
         if (price < conditionPrice) {
             return true
@@ -113,6 +115,7 @@ export class BencBehaviourService {
                 lowestPrice = candle[priceLabel]
             }
         }
+        console.log("Lowest low price " + lowestPrice)
         return lowestPrice
     }
 

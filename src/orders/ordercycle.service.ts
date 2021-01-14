@@ -83,7 +83,7 @@ export class OrderCycleService {
         }
 
         const potentialOrderId = this.buyOrders[key.id][this.buyOrders[key.id].length - 1].meta.id + 1
-        if (potentialOrderId > key.orderlimit) {
+        if (potentialOrderId > 120) {
             return 0 // no more orders
         }
         return potentialOrderId
