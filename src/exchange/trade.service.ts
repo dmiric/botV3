@@ -151,11 +151,17 @@ export class TradeService {
 
                     // pc: position closed
                     if (data[1] == 'pc') {
+                        if (data[2][0] !== key.symbol) {
+                            return
+                        }
                         this.resetTradeProcess(key)
                     }
 
                     // te: trade executed
                     if (data[1] == 'te') {
+                        if (data[2][0] !== key.symbol) {
+                            return
+                        }
                         // executed trade has to be positive
                         // we are updating buy orders here
                         if (data[2][4] > 0) {
@@ -167,7 +173,7 @@ export class TradeService {
                     // os: order snapshot
                     if (data[1] == 'os') {
                         for(const order of data[2]) {
-                            if(order[8] == 'TRAILING STOP') {
+                            if(order[8] == 'TRAILING STOP' && order[3] == key.symbol) {
                                 this.trailingStopOrderId = order[0]
                             }
                         }
@@ -175,6 +181,10 @@ export class TradeService {
 
                     // oc: order cancel
                     if(data[1] == 'oc') {
+                        if(data[2][3] != key.symbol) {
+                            return
+                        }
+
                         if(data[2][0] == this.trailingStopOrderId) {
                             this.trailingOrderSent = false;
                             this.trailingStopOrderId = 0;
