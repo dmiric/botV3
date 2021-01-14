@@ -41,12 +41,20 @@ export class TradeService {
     ) { }
 
     getStatusInfo() {
+        const behaviourInfo = this.behaviorService.getBehaviourInfo()
+
         let status = {}
         status = this.orderCycleService.getStatus()
         status['tradeStatus'] = this.tradeStatus
         status['activePosition'] = this.activePosition
         status['lastSignal'] = this.lastSignal
         status['lastSignalTime'] = this.lastSignalTime
+        status['behaviourInfo'] = {
+            'candle_count': behaviourInfo['candles'].length,
+            'candles': behaviourInfo['candles'],
+            'maxReach': behaviourInfo['maxReach'],
+            'nextOrder': behaviourInfo['nextOrder']
+        }
         return status;
     }
 
@@ -68,7 +76,7 @@ export class TradeService {
         // check if trade is active
         // check if position is positive
         // check if we are in profit over 0.5% - position[7]
-        if(this.trailingOrderSent && this.trailingStopOrderId > 0) {
+        if (this.trailingOrderSent && this.trailingStopOrderId > 0) {
             this.orderSocketService.cancelOrder(this.trailingStopOrderId)
         }
 
@@ -77,7 +85,7 @@ export class TradeService {
         }
     }
 
-    restartTrade(key: Key, lastBuyOrder: Order, trailing = false ): void {
+    restartTrade(key: Key, lastBuyOrder: Order, trailing = false): void {
         // set lastBuyOrder in OrderCycle
         this.orderCycleService.addBuyOrder(key, lastBuyOrder, lastBuyOrder.price)
         // set trailing order if present
@@ -93,7 +101,7 @@ export class TradeService {
         this.orderCycleService.setCurrentTimeFrame(key)
 
         this.orderSubscription = this.orderSocketService.messages$.subscribe(
-            (message: string) => {                
+            (message: string) => {
                 // respond to server
                 const data = JSON.parse(message)
                 this.logger.log(data, "order socket")
@@ -111,7 +119,7 @@ export class TradeService {
                     // ws: wallet snapshot
                     if (data[1] == 'ws') {
                         this.orderSocketService.setReadyState(true)
-                        this.candleStream(key)                        
+                        this.candleStream(key)
                     }
 
                     // wu: wallet update
@@ -172,20 +180,20 @@ export class TradeService {
 
                     // os: order snapshot
                     if (data[1] == 'os') {
-                        for(const order of data[2]) {
-                            if(order[8] == 'TRAILING STOP' && order[3] == key.symbol) {
+                        for (const order of data[2]) {
+                            if (order[8] == 'TRAILING STOP' && order[3] == key.symbol) {
                                 this.trailingStopOrderId = order[0]
                             }
                         }
                     }
 
                     // oc: order cancel
-                    if(data[1] == 'oc') {
-                        if(data[2][3] != key.symbol) {
+                    if (data[1] == 'oc') {
+                        if (data[2][3] != key.symbol) {
                             return
                         }
 
-                        if(data[2][0] == this.trailingStopOrderId) {
+                        if (data[2][0] == this.trailingStopOrderId) {
                             this.trailingOrderSent = false;
                             this.trailingStopOrderId = 0;
                         }

@@ -8,39 +8,59 @@ import { Key } from '../interfaces/key.model'
 @Injectable()
 export class BencBehaviourService {
 
+    private candles: Candle[]
+    private reach = 0;
+    private nextOrder;
+
     constructor(private ordersService: OrdersService, private ordersCycle: OrderCycleService) { }
+
+    public getBehaviourInfo(): any {
+        return {
+            'candles': this.candles,
+            'maxReach': this.reach,
+            'nextOrder': this.nextOrder
+        }
+    }
 
     // do this some day if we start working with more behaviours
     // https://stackoverflow.com/questions/53776882/how-to-handle-nestjs-dependency-injection-when-extending-a-class-for-a-service
     public nextOrderIdThatMatchesRules(candles: Candle[], key: Key): number {
+        this.candles = candles
 
         const nextOrderId = this.ordersCycle.getNextBuyOrderId(key)
         // in case this is the first order return it right away
         if (nextOrderId === 101) {
+            this.reach = 1;
             return nextOrderId
         }
 
         // find next order
-        if(nextOrderId === 0) {
+        if (nextOrderId === 0) {
+            this.reach = 2;
             return 0
         }
 
         // check if last candle is green
         const lastCandle: Candle = candles[candles.length - 1]
         if (!this.isGreen(lastCandle)) {
+            this.reach = 3;
             return 0
         }
 
         // if we have only 1 candle no need to check for other conditions
         if (candles.length < 2) {
+            this.reach = 4;
             return 0
         }
 
         // if candle before last is not red no need to continue
         const candleBeforeLast: Candle = candles[candles.length - 2]
         if (!this.isRed(candleBeforeLast)) {
+            this.reach = 5;
             return 0
         }
+
+        console.log("red and then green")
 
         // get stack of candles to run a price check on
         //const candleStack = this.getCandleStack(candles, lastCandle)
@@ -48,8 +68,10 @@ export class BencBehaviourService {
         // find lowest low price in candle stack
         const currentPrice = this.findLowestPrice(candleStack, 'low')
         const nextOrder = this.ordersService.getOrder(key, nextOrderId, currentPrice)
+        this.nextOrder = { ...nextOrder }
         // if order is other than frist one check if currentPrice is low enough
         if (this.isPriceLowEnough(key, currentPrice)) {
+            this.reach = 6;
             return nextOrder.meta.id
         }
 
@@ -115,8 +137,8 @@ export class BencBehaviourService {
                 lowestPrice = candle[priceLabel]
             }
         }
-        // console.log("Lowest low price " + lowestPrice)
+        console.log("Lowest low price " + lowestPrice)
         return lowestPrice
     }
 
- }
+}
