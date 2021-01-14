@@ -243,15 +243,14 @@ export class TradeService {
                             this.logger.log(data, 'candle socket')
                             const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
 
-                            if (order.meta.id == 101) {
-                                // send buy order to the api here
-                                this.orderSocketService.makeOrder(order)
-                                this.orderCycleService.addBuyOrder(key, order, 0)
-                            } else {
-                                const buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
+                            let buyPrice = 0
+                            if (order.meta.id != 101) {
+                                buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
                                 order['price'] = buyPrice
-                                this.orderSocketService.makeOrder(order)
                             }
+
+                            this.orderCycleService.addBuyOrder(key, order, buyPrice)
+                            this.orderSocketService.makeOrder(order)
 
                             candleSet = []
                         }
