@@ -42,7 +42,7 @@ async function bootstrap() {
     })
   });
 
-  await app.listen(1221);
+  await app.listen(80);
 }
 bootstrap();
 
