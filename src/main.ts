@@ -4,6 +4,8 @@ import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston'
 import * as winston from 'winston';
+import { ExchangeModule } from './exchange/exchange.module';
+import { ReconnectService } from './exchange/reconnect.service'
 /*
 import { CandlesModule } from './candles/candles.module'
 import { Key } from './interfaces/key.model'
@@ -39,6 +41,7 @@ async function bootstrap() {
       // options (same as WinstonModule.forRoot() options)
     })
   });
+
   await app.listen(1221);
 }
 bootstrap();

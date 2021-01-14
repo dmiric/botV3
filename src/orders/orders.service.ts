@@ -50,9 +50,8 @@ export class OrdersService {
             amount: this.calculateOrderAmount(key.startBalance, id, price),
             meta: {
                 aff_code: "uxiQm6DLx",
-                timeframe: key.timeframe,
+                key: key,
                 id: id,
-                safeDistance: key.safeDistance,
                 tradeExecuted: false
                 //target: key.target // this needs to be replaced
             }

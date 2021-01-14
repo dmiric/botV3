@@ -69,6 +69,12 @@ export class OrderSocketService {
         this.send(inputPayload)
     }
 
+    public cancelOrder(id: number) {
+        const inputPayload = [0, 'oc', null, { id: id }]
+        console.log(inputPayload)
+        this.send(inputPayload)
+    }
+
     public getSocketReadyState(): boolean {
         return this.socketReady;
     }
@@ -102,7 +108,7 @@ export class OrderSocketService {
         return apiOrder;
     }
 
-    public send(payload: Payload|any): void {
+    private send(payload: Payload|any): void {
         const msg = this.stringify(payload)
         this.input$.next(msg)
     }

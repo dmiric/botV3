@@ -63,4 +63,21 @@ export class ApiKeyService {
         return this.payload
     }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    public restAuth(apiPath: string, body: any) {
+        const apiKeys = this.readFile()
+        const nonce = (Date.now() * 1000).toString() // Standard nonce generator. Timestamp * 1000
+        const signature = `/api/${apiPath}${nonce}${JSON.stringify(body)}` 
+        // Consists of the complete url, nonce, and request body
+
+        const sig = HmacSHA384(signature, apiKeys[1]).toString()
+
+        return {
+            'Content-Type': 'application/json',
+            'bfx-nonce': nonce,
+            'bfx-apikey': apiKeys[0],
+            'bfx-signature': sig
+        }
+    }
+
 }

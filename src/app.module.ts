@@ -1,3 +1,4 @@
+import { ReconnectService } from './exchange/reconnect.service';
 import { StatusController } from './input/status.controller';
 import { HookService } from './input/hook.service';
 import { HookController } from './input/hook.controller';
@@ -35,6 +36,7 @@ import { AppService } from './app.service';
     StatusController,
     HookController, AppController],
   providers: [
+    ReconnectService,
     Logger,
     HookService,
     TradeService,
@@ -52,5 +54,8 @@ import { AppService } from './app.service';
 })
 export class AppModule {
 
+  constructor(private reConnectService: ReconnectService) {
+    this.reConnectService.reConnect()
+  }
 
 }

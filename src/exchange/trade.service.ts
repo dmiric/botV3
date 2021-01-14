@@ -11,7 +11,7 @@ import { CandleUtilService } from '../candles/candleutil.service';
 import { BencBehaviourService } from '../behaviour/bencbehaviour.service'
 import { CandleSocketService } from '../candles/candlesocket.service'
 import { Subscription } from 'rxjs'
-
+import { Order } from '../interfaces/order.model'
 import { normalClosureMessage } from 'rxjs-websockets';
 import { OrderSocketService } from '../orders/ordersocket.service'
 
@@ -25,6 +25,8 @@ export class TradeService {
     private currentPrice = 0;
     private lastSignal: Key;
     private lastSignalTime;
+    private trailingOrderSent = false;
+    private trailingStopOrderId = 0;
 
     constructor(
         private parseCandlesService: ParseCandlesService,
@@ -66,9 +68,22 @@ export class TradeService {
         // check if trade is active
         // check if position is positive
         // check if we are in profit over 0.5% - position[7]
+        if(this.trailingOrderSent && this.trailingStopOrderId > 0) {
+            this.orderSocketService.cancelOrder(this.trailingStopOrderId)
+        }
+
         if (this.getStatus() && this.activePosition[2] > 0 && this.activePosition[7] > 0.5) {
             this.orderSocketService.closePosition(key, this.activePosition[2])
         }
+    }
+
+    restartTrade(key: Key, lastBuyOrder: Order, trailing = false ): void {
+        // set lastBuyOrder in OrderCycle
+        this.orderCycleService.addBuyOrder(key, lastBuyOrder, lastBuyOrder.price)
+        // set trailing order if present
+        this.trailingOrderSent = trailing
+        // use key to start the trade again
+        this.trade(key)
     }
 
     trade(key: Key): void {
@@ -121,15 +136,15 @@ export class TradeService {
 
                         // if profit reached X% set tracking order
                         if (key.hasOwnProperty('trailingProfit') && key.hasOwnProperty('trailingDistance')) {
-                            if (data[2][1] !== 'ACTIVE') {
+                            if (data[2][1] !== 'ACTIVE' || this.trailingOrderSent) {
                                 return
                             }
 
                             if (data[2][7] > key.trailingProfit) {
-                                // createTrackingOrder here
                                 const priceTrailing = this.currentPrice * (key.trailingDistance / 100)
                                 this.orderSocketService.makeTrailingOrder(key, data[2][2], priceTrailing)
-                                this.resetTradeProcess(key)
+                                this.trailingOrderSent = true
+                                //this.resetTradeProcess(key)
                             }
                         }
                     }
@@ -149,7 +164,22 @@ export class TradeService {
                     }
                     //message: [0,"te",[563936681,"tTESTBTC:TESTUSD",1609889746511,55970331526,0.0032,33927,"MARKET",33903,-1,null,null,1609889681451]]
 
+                    // os: order snapshot
+                    if (data[1] == 'os') {
+                        for(const order of data[2]) {
+                            if(order[8] == 'TRAILING STOP') {
+                                this.trailingStopOrderId = order[0]
+                            }
+                        }
+                    }
 
+                    // oc: order cancel
+                    if(data[1] == 'oc') {
+                        if(data[2][0] == this.trailingStopOrderId) {
+                            this.trailingOrderSent = false;
+                            this.trailingStopOrderId = 0;
+                        }
+                    }
                 }
             },
             (error: Error) => {
