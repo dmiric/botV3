@@ -14,6 +14,7 @@ import { Subscription } from 'rxjs'
 import { Order } from '../interfaces/order.model'
 import { normalClosureMessage } from 'rxjs-websockets';
 import { OrderSocketService } from '../orders/ordersocket.service'
+import { RestService } from './rest.service';
 
 @Injectable()
 export class TradeService {
@@ -37,6 +38,7 @@ export class TradeService {
         private keyService: KeyService,
         private candleSocketService: CandleSocketService,
         private orderSocketService: OrderSocketService,
+        private restService: RestService,
         @Inject(Logger) private readonly logger: LoggerService
     ) { }
 
@@ -71,13 +73,19 @@ export class TradeService {
         this.logger.log(this.lastSignalTime, "signal")
     }
 
-    closePosition(key: Key): void {
+    async closePosition(key: Key): Promise<void> {
         this.setLastSignal(key)
         // check if trade is active
         // check if position is positive
         // check if we are in profit over 0.5% - position[7]
         if (this.trailingOrderSent && this.trailingStopOrderId > 0) {
             this.orderSocketService.cancelOrder(this.trailingStopOrderId)
+        }
+
+        // cancel all buy orders for the symbol
+        const activeOrders = await this.restService.fetchOrders(key.symbol)
+        for(const o of activeOrders) {
+            this.orderSocketService.cancelOrder(o[0])
         }
 
         if (this.getStatus() && this.activePosition[2] > 0 && this.activePosition[7] > 0.5) {
