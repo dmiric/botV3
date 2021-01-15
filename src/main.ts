@@ -4,6 +4,8 @@ import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston'
 import * as winston from 'winston';
+import * as stayAwake from 'stay-awake'
+
 import { ExchangeModule } from './exchange/exchange.module';
 import { ReconnectService } from './exchange/reconnect.service'
 /*
@@ -23,6 +25,11 @@ import { TradeService } from './exchange/trade.service';
 
 
 async function bootstrap() {
+  // prevent auto sleep
+  // stayAwake.prevent(function(err, data) {
+    //console.log('%d routines are preventing sleep', data);
+  // });
+
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger({
       level: 'info',

@@ -23,7 +23,13 @@ export class CandleSocketService {
     )
 
     public setSubscription(key: Key): void {
-        const keyString = "trade:" + key.timeframe + ":" + key.symbol
+        let keyString = "trade:" + key.timeframe + ":" + key.symbol
+
+        // use tBTCUSD stream on test server
+        if(key.symbol == 'tTESTBTC:TESTUSD') {
+            keyString = "trade:" + key.timeframe + ":tBTCUSD"
+        } 
+
         const msg = this.getSubscribeMessage(keyString)
         this.input$.next(msg)
     }

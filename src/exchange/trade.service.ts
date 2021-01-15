@@ -28,6 +28,7 @@ export class TradeService {
     private lastSignalTime;
     private trailingOrderSent = false;
     private trailingStopOrderId = 0;
+    private stoppedManually = false;
 
     constructor(
         private parseCandlesService: ParseCandlesService,
@@ -48,14 +49,15 @@ export class TradeService {
         let status = {}
         status = this.orderCycleService.getStatus()
         status['tradeStatus'] = this.tradeStatus
+        status['stoppedManually'] = this.stoppedManually
         status['activePosition'] = this.activePosition
         status['lastSignal'] = this.lastSignal
         status['lastSignalTime'] = this.lastSignalTime
         status['behaviourInfo'] = {
-            'candle_count': behaviourInfo['candles'].length,
-            'candles': behaviourInfo['candles'],
+            'candle_count': behaviourInfo['candles'].length,            
             'maxReach': behaviourInfo['maxReach'],
-            'nextOrder': behaviourInfo['nextOrder']
+            'nextOrder': behaviourInfo['nextOrder'],
+            'candles': behaviourInfo['candles']
         }
         return status;
     }
@@ -84,7 +86,7 @@ export class TradeService {
 
         // cancel all buy orders for the symbol
         const activeOrders = await this.restService.fetchOrders(key.symbol)
-        for(const o of activeOrders) {
+        for (const o of activeOrders) {
             this.orderSocketService.cancelOrder(o[0])
         }
 
@@ -102,7 +104,7 @@ export class TradeService {
         this.trade(key)
     }
 
-    trade(key: Key): void {
+    trade(key: Key) {
         this.setLastSignal(key)
 
         this.tradeStatus = true
@@ -158,6 +160,13 @@ export class TradeService {
 
                             if (data[2][7] > key.trailingProfit) {
                                 const priceTrailing = this.currentPrice * (key.trailingDistance / 100)
+
+                                // cancel all buy orders for the symbol
+                                // const activeOrders = await this.restService.fetchOrders(key.symbol)
+                                // for (const o of activeOrders) {
+                                //    this.orderSocketService.cancelOrder(o[0])
+                                // }
+
                                 this.orderSocketService.makeTrailingOrder(key, data[2][2], priceTrailing)
                                 this.trailingOrderSent = true
                                 //this.resetTradeProcess(key)
@@ -175,7 +184,7 @@ export class TradeService {
 
                     // te: trade executed
                     if (data[1] == 'te') {
-                        if (data[2][0] !== key.symbol) {
+                        if (data[2][1] !== key.symbol) {
                             return
                         }
                         // executed trade has to be positive
@@ -249,6 +258,11 @@ export class TradeService {
                         return
                     }
 
+                    // debug
+                    if(candleSet.length > 0 && candleSet.length < 5) {
+                        // this.logger.log(candleSet, 'candle set')
+                    }
+
                     candleSet = this.parseCandlesService.handleCandleStream(data, key, candleSet)
                     const currentCandle: Candle = candleSet[candleSet.length - 1]
 
@@ -310,6 +324,17 @@ export class TradeService {
         this.orderSubscription.unsubscribe()
         // set process inactive
         this.tradeStatus = false
+    }
+
+    stopTrade(): string {
+        // unsub candle stream
+        this.candleSubscription.unsubscribe()
+        // unsub from order stream
+        this.orderSubscription.unsubscribe()
+        // set process inactive
+        this.tradeStatus = false
+        this.stoppedManually = true
+        return "Stopped!"
     }
 
 }

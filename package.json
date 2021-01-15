@@ -42,6 +42,7 @@
     "rimraf": "^3.0.2",
     "rxjs": "^6.6.3",
     "rxjs-websockets": "^8.0.1",
+    "stay-awake": "0.0.3",
     "trading-signals": "^1.2.0",
     "winston": "^3.3.3",
     "ws": "^7.4.0"

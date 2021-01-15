@@ -1,3 +1,4 @@
+import { StopController } from './input/stop.controller';
 import { ReconnectService } from './exchange/reconnect.service';
 import { StatusController } from './input/status.controller';
 import { HookService } from './input/hook.service';
@@ -33,6 +34,7 @@ import { AppService } from './app.service';
     CandlesModule
   ],
   controllers: [
+    StopController,
     StatusController,
     HookController, AppController],
   providers: [

@@ -16,7 +16,7 @@ export class ReconnectService {
     async reConnect(): Promise<any> {
         const positions = await this.restService.fetchActivePositions()
         for (const pos of positions) {
-            if (pos[1] === 'ACTIVE' && pos[0] == 'tBTCUSD') {
+            if (pos[1] === 'ACTIVE' && (pos[0] == 'tBTCUSD' || pos[0] == 'tTESTBTC:TESTUSD')) {
                 const lastOrderId = pos[19]['order_id']
                 const lastBuyOrder = await this.restService.fetchOrders(pos[0], { id: [lastOrderId] }, true)
                 console.log(lastBuyOrder)
