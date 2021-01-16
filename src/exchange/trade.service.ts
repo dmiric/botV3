@@ -44,7 +44,9 @@ export class TradeService {
     ) { }
 
     getStatusInfo() {
-        const behaviourInfo = this.behaviorService.getBehaviourInfo()
+
+
+        // const behaviourInfo = this.behaviorService.getBehaviourInfo()
 
         let status = {}
         status = this.orderCycleService.getStatus()
@@ -53,12 +55,14 @@ export class TradeService {
         status['activePosition'] = this.activePosition
         status['lastSignal'] = this.lastSignal
         status['lastSignalTime'] = this.lastSignalTime
+        /*
         status['behaviourInfo'] = {
             'candle_count': behaviourInfo['candles'].length,            
             'maxReach': behaviourInfo['maxReach'],
             'nextOrder': behaviourInfo['nextOrder'],
             'candles': behaviourInfo['candles']
         }
+        */
         return status;
     }
 
