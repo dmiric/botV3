@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common"
-import { Subject, Observable } from 'rxjs'
-import { share, switchMap } from 'rxjs/operators'
+import { Subject, Observable, timer } from 'rxjs'
+import { share, switchMap, retryWhen, delayWhen } from 'rxjs/operators'
 import makeWebSocketObservable, {
     GetWebSocketResponses
 } from 'rxjs-websockets'
@@ -24,6 +24,7 @@ export class OrderSocketService {
             return getResponses(this.input$)
         }),
         share(),
+        retryWhen(errors => errors.pipe( delayWhen(() => timer(1000)) )),
     )
 
     constructor(private apiKeyService: ApiKeyService) {
@@ -69,7 +70,7 @@ export class OrderSocketService {
         this.send(inputPayload)
     }
 
-    public cancelOrder(id: number) {
+    public cancelOrder(id: number): void {
         const inputPayload = [0, 'oc', null, { id: id }]
         console.log(inputPayload)
         this.send(inputPayload)

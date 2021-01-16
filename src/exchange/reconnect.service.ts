@@ -15,32 +15,46 @@ export class ReconnectService {
 
     async reConnect(): Promise<any> {
         const positions = await this.restService.fetchActivePositions()
+        this.logger.log(positions)
+
         for (const pos of positions) {
             if (pos[1] === 'ACTIVE' && (pos[0] == 'tBTCUSD' || pos[0] == 'tTESTBTC:TESTUSD')) {
+
+                // Last buy order from history
                 const lastOrderId = pos[19]['order_id']
-                const lastBuyOrder = await this.restService.fetchOrders(pos[0], { id: [lastOrderId] }, true)
-                console.log(lastBuyOrder)
-                console.log(lastBuyOrder[0][31]['key'])
-                const activeOrder = await this.restService.fetchOrders(pos[0])
+                const lastHistBuyOrders = await this.restService.fetchOrders(pos[0], { id: [lastOrderId] }, true)
 
-                // set ordercycle
-                // run trade process
-                const key: Key = lastBuyOrder[0][31]['key']
-                const order = this.formatOrder(lastBuyOrder[0])
+                const lastHistBuyOrder = this.formatOrder(lastHistBuyOrders[0], true)
+                this.logger.log(lastHistBuyOrder, "Last History Buy Order")
 
-                if (activeOrder.length > 0 && activeOrder[0][8] == 'TRAILING STOP') {
-                    this.tradeService.restartTrade(key, order, true)
-                } else {
-                    this.tradeService.restartTrade(key, order)
-                }
-                console.log(activeOrder)
+                let key: Key = lastHistBuyOrder[0][31]['key']  
+
+                // Active orders
+                const activeOrders = await this.restService.fetchOrders(pos[0])
+                this.logger.log(lastHistBuyOrder, "Active Orders")
+
+                if (activeOrders && activeOrders.length > 0) {
+                    for(const activeOrder of activeOrders) {
+                        if(activeOrder[8] == 'TRAILING STOP') {
+                            this.tradeService.setTrailingOrderSent(true)
+                        }
+                        if(activeOrder[8] == 'LIMIT') {
+                            const lastActiveBuyOrder = this.formatOrder(activeOrder, false)
+                            key = lastActiveBuyOrder[31]['key']
+                            this.tradeService.restartTrade(key, lastActiveBuyOrder)
+                            console.log(lastActiveBuyOrder)
+                        } else {
+                            this.tradeService.restartTrade(key, lastHistBuyOrder)
+                        }
+                    }
+                } 
             }
         }
-        this.logger.log(positions)
+       
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    private formatOrder(apiOrder: any): Order {
+    private formatOrder(apiOrder: any, tradeExecuted: boolean): Order {
         const order: Order = {
             cid: apiOrder[2],
             symbol: apiOrder[3],
@@ -51,7 +65,7 @@ export class ReconnectService {
                 id: apiOrder[31]['id'],
                 key: apiOrder[31]['key'],
                 aff_code: apiOrder['aff_code'],
-                tradeExecuted: true
+                tradeExecuted: tradeExecuted
             }
         }
 

@@ -25,7 +25,7 @@ export class TradeService {
     private activePosition = [];
     private currentPrice = 0;
     private lastSignal: Key;
-    private lastSignalTime;
+    private lastSignalTime: string;
     private trailingOrderSent = false;
     private trailingStopOrderId = 0;
     private stoppedManually = false;
@@ -43,7 +43,7 @@ export class TradeService {
         @Inject(Logger) private readonly logger: LoggerService
     ) { }
 
-    getStatusInfo() {
+    getStatusInfo(): any {
 
 
         // const behaviourInfo = this.behaviorService.getBehaviourInfo()
@@ -99,16 +99,19 @@ export class TradeService {
         }
     }
 
-    restartTrade(key: Key, lastBuyOrder: Order, trailing = false): void {
+    restartTrade(key: Key, lastBuyOrder: Order): void {
         // set lastBuyOrder in OrderCycle
         this.orderCycleService.addBuyOrder(key, lastBuyOrder, lastBuyOrder.price)
-        // set trailing order if present
-        this.trailingOrderSent = trailing
         // use key to start the trade again
         this.trade(key)
     }
 
-    trade(key: Key) {
+    setTrailingOrderSent(trailing: boolean): void {
+        // set trailing order if present
+        this.trailingOrderSent = trailing
+    }
+
+    trade(key: Key): void {
         this.setLastSignal(key)
 
         this.tradeStatus = true
