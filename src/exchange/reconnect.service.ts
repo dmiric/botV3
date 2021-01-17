@@ -47,7 +47,7 @@ export class ReconnectService {
                             const lastActiveBuyOrder = this.formatOrder(activeOrder, false)
                             this.logger.log(lastActiveBuyOrder, 'last active LIMIT order')
 
-                            key = lastActiveBuyOrder[31]['key']
+                            //key = lastActiveBuyOrder[31]['key']
                             restartOrder = lastActiveBuyOrder
                         }
                     }
