@@ -33,7 +33,7 @@ export class TradeService {
     private lastSignalTime: string;
 
     private trailingOrderSent = false;
-    private trailingStopOrderId = 0;    
+    private trailingStopOrderId = 0;
 
     constructor(
         private parseCandlesService: ParseCandlesService,
@@ -138,19 +138,19 @@ export class TradeService {
         this.orderSubscription = this.orderSocketService.messages$.subscribe(
             (message: string) => {
 
-                if(!this.getStatus() || this.isStopped() || this.isStarting()) {
+                if (!this.getStatus() || this.isStopped() || this.isStarting()) {
                     return
                 }
 
                 // respond to server
                 const data = JSON.parse(message)
-                 
+
                 // pu: position update
-                 if (data[1] == 'pu') {
-                     // we don't want all positions in log
+                if (data[1] == 'pu') {
+                    // we don't want all positions in log
                     if (data[2][0] == key.symbol) {
                         this.logger.log(data, "order socket")
-                    }                    
+                    }
                 } else {
                     this.logger.log(data, "order socket")
                 }
@@ -237,6 +237,13 @@ export class TradeService {
                         }
                     }
 
+                    // on: order new
+                    if (data[1] == 'on') {
+                        if (data[2][8] == 'LIMIT') {
+                            this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0] });
+                        }
+                    }
+
                     // os: order snapshot
                     if (data[1] == 'os') {
                         for (const order of data[2]) {
@@ -282,7 +289,7 @@ export class TradeService {
         this.candleSubscription = this.candleSocketService.messages$.subscribe(
             (message: string) => {
 
-                if(!this.getStatus() || this.isStopped() || this.isStarting()) {
+                if (!this.getStatus() || this.isStopped() || this.isStarting()) {
                     return
                 }
 
@@ -306,8 +313,8 @@ export class TradeService {
                     }
 
                     // debug
-                    if(candleSet.length > 0 && candleSet.length < 3) {
-                        this.logger.log(candleSet, 'candle set')
+                    if (candleSet.length > 0 && candleSet.length < 3) {
+                        // this.logger.log(candleSet, 'candle set')
                     }
 
                     candleSet = this.parseCandlesService.handleCandleStream(data, key, candleSet)

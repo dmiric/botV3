@@ -11,6 +11,7 @@ export class BencBehaviourService {
     private candles: Candle[]
     private reach = 0;
     private nextOrder;
+    private lowestPrice: number;
 
     constructor(private ordersService: OrdersService, private ordersCycle: OrderCycleService) { }
 
@@ -25,6 +26,10 @@ export class BencBehaviourService {
     // do this some day if we start working with more behaviours
     // https://stackoverflow.com/questions/53776882/how-to-handle-nestjs-dependency-injection-when-extending-a-class-for-a-service
     public nextOrderIdThatMatchesRules(candles: Candle[], key: Key): number {
+        if(candles.length === candles.length) {
+            return 0
+        }
+
         this.candles = candles
 
         const nextOrderId = this.ordersCycle.getNextBuyOrderId(key)
@@ -83,8 +88,8 @@ export class BencBehaviourService {
 
     private isPriceLowEnough(key: Key, lowestPrice: number): boolean {
         const lastOrder = this.ordersCycle.getLastBuyOrder(key)
-        const conditionPrice: number = lastOrder.price - (lastOrder.price * key.safeDistance / 100)
-
+        const conditionPrice: number = lastOrder.price - (lastOrder.price * key.safeDistance / 100) 
+        
         console.log("Is Price Low Enough: " + lowestPrice + ":" + conditionPrice)
 
         if (lowestPrice < conditionPrice) {
