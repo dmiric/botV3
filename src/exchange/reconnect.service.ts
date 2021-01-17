@@ -30,7 +30,7 @@ export class ReconnectService {
                 const lastHistBuyOrder = this.formatOrder(lastHistBuyOrders[0], true)
                 this.logger.log(lastHistBuyOrder, "Last History Buy Order")
 
-                let key: Key = lastHistBuyOrder[0][31]['key']
+                let key: Key = lastHistBuyOrder['meta']['key']
                 let restartOrder = lastHistBuyOrder
 
                 // Active orders
@@ -47,7 +47,7 @@ export class ReconnectService {
                             const lastActiveBuyOrder = this.formatOrder(activeOrder, false)
                             this.logger.log(lastActiveBuyOrder, 'last active LIMIT order')
 
-                            //key = lastActiveBuyOrder[31]['key']
+                            key = lastActiveBuyOrder['meta']['key']
                             restartOrder = lastActiveBuyOrder
                         }
                     }
