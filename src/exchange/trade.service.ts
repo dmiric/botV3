@@ -162,9 +162,15 @@ export class TradeService {
                     this.orderSocketService.auth()
                 } else {
                     // hb: hearth beat
-                    if (data.event || data[1] == 'hb') {
+                    if (data.event) {
                         return;
                     }
+
+                    // hb: hearth beat
+                    if(data[1] == 'hb') {
+                        this.orderSocketService.requestReqcalc(key)
+                    }
+
                     // ws: wallet snapshot
                     if (data[1] == 'ws') {
                         this.orderSocketService.setReadyState(true)
@@ -213,6 +219,8 @@ export class TradeService {
                             }
                         }
                     }
+
+
 
                     // pc: position closed
                     if (data[1] == 'pc') {
