@@ -71,7 +71,7 @@ export class OrderSocketService {
     }
 
     public requestReqcalc(key: Key): void  {
-        const inputPayload = [0, 'on', null, [["position_" + key.symbol]]] // Note how the payload is constructed here. It consists of an array starting with the CHANNEL_ID, TYPE, and PLACEHOLDER and is followed by the inputDetails object.
+        const inputPayload = [0, 'calc', null, [["position_" + key.symbol]]] // Note how the payload is constructed here. It consists of an array starting with the CHANNEL_ID, TYPE, and PLACEHOLDER and is followed by the inputDetails object.
         this.send(inputPayload)
     }
 
