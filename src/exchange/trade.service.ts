@@ -247,6 +247,10 @@ export class TradeService {
 
                     // on: order new
                     if (data[1] == 'on') {
+                        if (data[2][3] !== key.symbol) {
+                            return
+                        }
+
                         if (data[2][8] == 'LIMIT') {
                             this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0] });
                         }
