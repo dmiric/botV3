@@ -47,11 +47,14 @@ export class OrderCycleService {
 
     updateBuyOrder(key: Key, cid: number, data: any): void {
         const o = this.getBuyOrderByCid(key, cid)
-        if('price' in data) {
+        if(data.hasOwnProperty('price')) {
             o.price = data.price
         }
-        if('tradeExecuted' in data) {
+        if(data.hasOwnProperty('tradeExecuted')) {
             o.meta.tradeExecuted = data.tradeExecuted
+        }
+        if(data.hasOwnProperty('ex_id')) {
+            o.meta.ex_id = data.ex_id
         }
     }
 

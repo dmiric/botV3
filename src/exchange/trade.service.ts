@@ -20,15 +20,20 @@ import { RestService } from './rest.service';
 export class TradeService {
 
     private tradeStatus = false;
+    private stoppedManually = false;
+    private starting = false;
+
     private candleSubscription: Subscription;
     private orderSubscription: Subscription;
+
     private activePosition = [];
     private currentPrice = 0;
+
     private lastSignal: Key;
     private lastSignalTime: string;
+
     private trailingOrderSent = false;
-    private trailingStopOrderId = 0;
-    private stoppedManually = false;
+    private trailingStopOrderId = 0;    
 
     constructor(
         private parseCandlesService: ParseCandlesService,
@@ -44,10 +49,7 @@ export class TradeService {
     ) { }
 
     getStatusInfo(): any {
-
-
         // const behaviourInfo = this.behaviorService.getBehaviourInfo()
-
         let status = {}
         status = this.orderCycleService.getStatus()
         status['tradeStatus'] = this.tradeStatus
@@ -68,6 +70,22 @@ export class TradeService {
 
     getStatus(): boolean {
         return this.tradeStatus;
+    }
+
+    setStatus(status: boolean): boolean {
+        return this.tradeStatus = status;
+    }
+
+    setStarting(status: boolean): boolean {
+        return this.starting = status;
+    }
+
+    isStarting(): boolean {
+        return this.starting
+    }
+
+    isStopped(): boolean {
+        return this.stoppedManually
     }
 
     setLastSignal(key: Key): void {
@@ -119,9 +137,23 @@ export class TradeService {
 
         this.orderSubscription = this.orderSocketService.messages$.subscribe(
             (message: string) => {
+
+                if(!this.getStatus() || this.isStopped() || this.isStarting()) {
+                    return
+                }
+
                 // respond to server
                 const data = JSON.parse(message)
-                this.logger.log(data, "order socket")
+                 
+                // pu: position update
+                 if (data[1] == 'pu') {
+                     // we don't want all positions in log
+                    if (data[2][0] == key.symbol) {
+                        this.logger.log(data, "order socket")
+                    }                    
+                } else {
+                    this.logger.log(data, "order socket")
+                }
 
                 if (data.event === "info") {
 
@@ -170,9 +202,10 @@ export class TradeService {
 
                                 // cancel all buy orders for the symbol
                                 // const activeOrders = await this.restService.fetchOrders(key.symbol)
-                                // for (const o of activeOrders) {
-                                //    this.orderSocketService.cancelOrder(o[0])
-                                // }
+                                const buyOrders = this.orderCycleService.getBuyOrders(key)
+                                for (const o of buyOrders) {
+                                    this.orderSocketService.cancelOrder(o.meta.ex_id)
+                                }
 
                                 this.orderSocketService.makeTrailingOrder(key, data[2][2], priceTrailing)
                                 this.trailingOrderSent = true
@@ -191,16 +224,18 @@ export class TradeService {
 
                     // te: trade executed
                     if (data[1] == 'te') {
+                        //message: [0,"te",[563936681,"tTESTBTC:TESTUSD",1609889746511,55970331526,0.0032,33927,"MARKET",33903,-1,null,null,1609889681451]]
+
                         if (data[2][1] !== key.symbol) {
                             return
                         }
+
                         // executed trade has to be positive
                         // we are updating buy orders here
                         if (data[2][4] > 0) {
-                            this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], tradeExecuted: true });
+                            this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], tradeExecuted: true, ex_id: data[2][0] });
                         }
                     }
-                    //message: [0,"te",[563936681,"tTESTBTC:TESTUSD",1609889746511,55970331526,0.0032,33927,"MARKET",33903,-1,null,null,1609889681451]]
 
                     // os: order snapshot
                     if (data[1] == 'os') {
@@ -246,6 +281,11 @@ export class TradeService {
 
         this.candleSubscription = this.candleSocketService.messages$.subscribe(
             (message: string) => {
+
+                if(!this.getStatus() || this.isStopped() || this.isStarting()) {
+                    return
+                }
+
                 //const trimmed = message.substring(0, 100)
                 // this.logger.log(message, 'candle socket')
                 // respond to server
@@ -266,8 +306,8 @@ export class TradeService {
                     }
 
                     // debug
-                    if(candleSet.length > 0 && candleSet.length < 5) {
-                        // this.logger.log(candleSet, 'candle set')
+                    if(candleSet.length > 0 && candleSet.length < 3) {
+                        this.logger.log(candleSet, 'candle set')
                     }
 
                     candleSet = this.parseCandlesService.handleCandleStream(data, key, candleSet)
@@ -323,6 +363,7 @@ export class TradeService {
     }
 
     resetTradeProcess(key: Key): void {
+        this.logger.log("Resetting...", "reset trade process")
         // unsub candle stream
         this.candleSubscription.unsubscribe()
         // clean up all the data from the previous cycle
@@ -330,17 +371,22 @@ export class TradeService {
         // unsub from order stream
         this.orderSubscription.unsubscribe()
         // set process inactive
-        this.tradeStatus = false
+        this.setStatus(false)
+
+        this.logger.log("Done!", "reset trade process")
     }
 
     stopTrade(): string {
+        this.logger.log("Stopping...", "manual stop")
         // unsub candle stream
         this.candleSubscription.unsubscribe()
         // unsub from order stream
         this.orderSubscription.unsubscribe()
         // set process inactive
-        this.tradeStatus = false
+        this.setStatus(false)
+
         this.stoppedManually = true
+        this.logger.log("Stopped!", "manual stop")
         return "Stopped!"
     }
 

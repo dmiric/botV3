@@ -60,17 +60,15 @@ export class BencBehaviourService {
             return 0
         }
 
-        console.log("red and then green")
-
         // get stack of candles to run a price check on
         //const candleStack = this.getCandleStack(candles, lastCandle)
         const candleStack = candles;
         // find lowest low price in candle stack
-        const currentPrice = this.findLowestPrice(candleStack, 'low')
-        const nextOrder = this.ordersService.getOrder(key, nextOrderId, currentPrice)
+        const lowestPrice = this.findLowestPrice(candleStack, 'low')
+        const nextOrder = this.ordersService.getOrder(key, nextOrderId, lowestPrice)
         this.nextOrder = { ...nextOrder }
         // if order is other than frist one check if currentPrice is low enough
-        if (this.isPriceLowEnough(key, currentPrice)) {
+        if (this.isPriceLowEnough(key, lowestPrice)) {
             this.reach = 6;
             return nextOrder.meta.id
         }
@@ -83,13 +81,13 @@ export class BencBehaviourService {
         return this.findLowestPrice(candles, 'low')
     }
 
-    private isPriceLowEnough(key: Key, price: number): boolean {
+    private isPriceLowEnough(key: Key, lowestPrice: number): boolean {
         const lastOrder = this.ordersCycle.getLastBuyOrder(key)
         const conditionPrice: number = lastOrder.price - (lastOrder.price * key.safeDistance / 100)
 
-        console.log("Is Price Low Enough: " + price + ":" + conditionPrice)
+        console.log("Is Price Low Enough: " + lowestPrice + ":" + conditionPrice)
 
-        if (price < conditionPrice) {
+        if (lowestPrice < conditionPrice) {
             return true
         }
 
@@ -137,7 +135,6 @@ export class BencBehaviourService {
                 lowestPrice = candle[priceLabel]
             }
         }
-        console.log("Lowest low price " + lowestPrice)
         return lowestPrice
     }
 

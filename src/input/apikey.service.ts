@@ -34,7 +34,6 @@ export class ApiKeyService {
         if(this.fileAccess(filePath)) {
           let rawData = fs.readFileSync(filePath, "utf8");
           rawData = rawData.replace(/(\r\n|\n|\r)/gm,"");
-          console.log("|" + rawData + '|')
           return rawData.split(',')      
         }
     }

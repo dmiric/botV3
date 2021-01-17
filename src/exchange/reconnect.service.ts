@@ -14,6 +14,9 @@ export class ReconnectService {
     }
 
     async reConnect(): Promise<any> {
+
+        this.tradeService.setStarting(true)
+
         const positions = await this.restService.fetchActivePositions()
         this.logger.log(positions)
 
@@ -27,30 +30,36 @@ export class ReconnectService {
                 const lastHistBuyOrder = this.formatOrder(lastHistBuyOrders[0], true)
                 this.logger.log(lastHistBuyOrder, "Last History Buy Order")
 
-                let key: Key = lastHistBuyOrder[0][31]['key']  
+                let key: Key = lastHistBuyOrder[0][31]['key']
+                let restartOrder = lastHistBuyOrder
 
                 // Active orders
                 const activeOrders = await this.restService.fetchOrders(pos[0])
-                this.logger.log(lastHistBuyOrder, "Active Orders")
 
                 if (activeOrders && activeOrders.length > 0) {
-                    for(const activeOrder of activeOrders) {
-                        if(activeOrder[8] == 'TRAILING STOP') {
+                    this.logger.log(activeOrders, "Active Orders")
+
+                    for (const activeOrder of activeOrders) {
+                        if (activeOrder[8] == 'TRAILING STOP') {
                             this.tradeService.setTrailingOrderSent(true)
                         }
-                        if(activeOrder[8] == 'LIMIT') {
+                        if (activeOrder[8] == 'LIMIT') {
                             const lastActiveBuyOrder = this.formatOrder(activeOrder, false)
+                            this.logger.log(lastActiveBuyOrder, 'last active LIMIT order')
+
                             key = lastActiveBuyOrder[31]['key']
-                            this.tradeService.restartTrade(key, lastActiveBuyOrder)
-                            console.log(lastActiveBuyOrder)
-                        } else {
-                            this.tradeService.restartTrade(key, lastHistBuyOrder)
+                            restartOrder = lastActiveBuyOrder
                         }
                     }
-                } 
+                }
+
+                this.logger.log(restartOrder, 'restart order')
+                this.tradeService.restartTrade(key, restartOrder)
             }
         }
-       
+
+        this.tradeService.setStarting(false)
+
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types

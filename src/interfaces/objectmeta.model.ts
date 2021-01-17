@@ -10,4 +10,5 @@ export interface ObjectMeta {
     id?: number;
     key?: Key;
     tradeExecuted?: boolean;
+    ex_id?: number;
   }

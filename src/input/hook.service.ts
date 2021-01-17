@@ -27,7 +27,7 @@ export class HookService {
             return
         }
 
-        if (this.tradeService.getStatus()) {
+        if (this.tradeService.getStatus() || this.tradeService.isStopped() || this.tradeService.isStarting()) {
             console.log("already active")
             return
         }
