@@ -241,6 +241,8 @@ export class TradeService {
                         // executed trade has to be positive
                         // we are updating buy orders here
                         if (data[2][4] > 0) {
+                            this.logger.log(data, "te: trade executed")
+                            this.logger.log(key, "te: trade executed")
                             this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], tradeExecuted: true, ex_id: data[2][0] });
                         }
                     }

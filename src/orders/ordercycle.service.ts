@@ -110,6 +110,7 @@ export class OrderCycleService {
     }
 
     getBuyOrderByCid(key: Key, cid: number): Order {
+        this.logger.log(this.buyOrders, "buy orders")
         for (const order of this.buyOrders[key.id]) {
             if(order.cid === cid) {
                 return order
