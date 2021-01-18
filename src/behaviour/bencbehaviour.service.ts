@@ -26,7 +26,8 @@ export class BencBehaviourService {
     // do this some day if we start working with more behaviours
     // https://stackoverflow.com/questions/53776882/how-to-handle-nestjs-dependency-injection-when-extending-a-class-for-a-service
     public nextOrderIdThatMatchesRules(candles: Candle[], key: Key): number {
-        if(candles.length === candles.length) {
+        
+        if(this.candles && this.candles.length === candles.length) {
             return 0
         }
 
