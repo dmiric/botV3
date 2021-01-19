@@ -62,7 +62,7 @@ export class TradeService {
         status['lastSignal'] = this.lastSignal
         status['lastSignalTime'] = this.lastSignalTime
         status['behaviourInfo'] = {
-            'candle_count': behaviourInfo['candles'].length,            
+            'candle_count': behaviourInfo['candles'].length ? behaviourInfo['candles'].length : 0,            
             'maxReach': behaviourInfo['maxReach'],
             'nextOrder': behaviourInfo['nextOrder']
         }
