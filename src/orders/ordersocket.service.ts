@@ -14,26 +14,38 @@ import { Key } from "src/interfaces/key.model"
 export class OrderSocketService {
 
     public input$ = new Subject<string>()
-    private socket$ = makeWebSocketObservable('wss://api.bitfinex.com/ws/2')
-    private socketReady = false;
+    //private socket$ = makeWebSocketObservable('wss://api.bitfinex.com/ws/2')
+    private socket$: Observable<GetWebSocketResponses<WebSocketPayload>>
+    private socketReady = false
 
-    public messages$: Observable<WebSocketPayload> = this.socket$.pipe(
-        // the observable produces a value once the websocket has been opened
-        switchMap((getResponses: GetWebSocketResponses) => {
-            console.log('order websocket opened')
-            return getResponses(this.input$)
-        }),
-        share(),
-        retryWhen(errors => errors.pipe( delayWhen(() => timer(1000)) )),
-    )
+    public messages$: Observable<WebSocketPayload>
 
     constructor(private apiKeyService: ApiKeyService) {
-        this.auth()
+        //this.auth()
+    }
+
+    public createSocket(): void {
+        this.socket$ = makeWebSocketObservable('wss://api.bitfinex.com/ws/2')
+        this.messages$ = this.socket$.pipe(
+            // the observable produces a value once the websocket has been opened
+            switchMap((getResponses: GetWebSocketResponses) => {
+                console.log('order websocket opened')
+                const response = getResponses(this.input$)
+                console.log(response)
+                return response
+            }),
+            share(),
+            retryWhen(errors => errors.pipe( delayWhen(() => timer(10000, 1000)) )),
+        )
     }
 
     public auth(): void {
         const payload = this.apiKeyService.getAuthPayload()
         this.send(payload)
+    }
+
+    public complete(): void {
+        this.input$.complete()
     }
 
     public closePosition(key: Key, amount: number): void {

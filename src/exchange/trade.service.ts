@@ -31,6 +31,8 @@ export class TradeService {
 
     private lastSignal: Key;
     private lastSignalTime: string;
+    
+    private lastPositionUpdateTime = 0;
 
     private trailingOrderSent = false;
     private trailingStopOrderId = 0;
@@ -131,11 +133,14 @@ export class TradeService {
         this.trailingOrderSent = trailing
     }
 
-    trade(key: Key): void {
+    trade(key: Key, reconnect = false): void {
         this.setLastSignal(key)
+        this.lastPositionUpdateTime = 0
 
         this.tradeStatus = true
         this.orderCycleService.setCurrentTimeFrame(key)
+
+        this.orderSocketService.createSocket()
 
         this.orderSubscription = this.orderSocketService.messages$.subscribe(
             (message: string) => {
@@ -154,7 +159,9 @@ export class TradeService {
                         this.logger.log(data, "order socket")
                     }
                 } else {
-                    this.logger.log(data, "order socket")
+                    if(data[1] !== 'bu') {
+                        this.logger.log(data, "order socket")
+                    }
                 }
 
                 if (data.event === "info") {
@@ -171,12 +178,24 @@ export class TradeService {
                     // hb: hearth beat
                     if(data[1] == 'hb') {
                         this.orderSocketService.requestReqcalc(key)
+                        
+                        // hack to reconnect if position update is late 1 minute
+                        const secDelay = Math.floor( (Date.now() - this.lastPositionUpdateTime) / 1000 )
+                        if(secDelay > 60) {
+                            this.orderSocketService.setReadyState(false)
+                            // unsub from order stream
+                            this.orderSubscription.unsubscribe()
+                            this.logger.log(data, "reconnecting to order socket")
+                            this.trade(key, true)
+                        } 
                     }
 
                     // ws: wallet snapshot
                     if (data[1] == 'ws') {
                         this.orderSocketService.setReadyState(true)
-                        this.candleStream(key)
+                        if(!reconnect) {
+                            this.candleStream(key)
+                        }
                     }
 
                     // wu: wallet update
@@ -194,6 +213,8 @@ export class TradeService {
                         if (data[2][0] !== key.symbol) {
                             return
                         }
+
+                        this.lastPositionUpdateTime = Date.now()
 
                         if (data[2][1] == 'ACTIVE') {
                             this.activePosition = data[2]
