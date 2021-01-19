@@ -41,6 +41,7 @@ export class BencBehaviourService {
                 console.log(tradeTimestamp)
                 console.log(candles[0].mts)
                 if (candles[0].mts < tradeTimestamp) {
+
                     candles = this.getCandleStack(candles, tradeTimestamp)
                 }
             }
@@ -125,14 +126,16 @@ export class BencBehaviourService {
     public getCandleStack(candles: Candle[], tradeTimestamp: number): Candle[] {
         const reversedCandles = candles.reverse()
         const candleStack: Candle[] = []
-
+        console.log("bio tute")
         for (const candle of reversedCandles) {
-            if (candle.mts > tradeTimestamp) {
+            if (candle.mts < tradeTimestamp) {
+                console.log("bio tute 2")
                 break
             }
-
+            console.log("bio tute 3")
             candleStack.push(candle)
         }
+        console.log(candleStack)
         return candleStack.reverse()
     }
 
