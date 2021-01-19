@@ -39,7 +39,7 @@ export class OrderCycleService {
         const o = { ...order }
         o.price = price
 
-        if(!(key.id in this.buyOrders)) {
+        if (!(key.id in this.buyOrders)) {
             this.buyOrders[key.id] = []
         }
         this.buyOrders[key.id].push(o)
@@ -47,13 +47,13 @@ export class OrderCycleService {
 
     updateBuyOrder(key: Key, cid: number, data: any): void {
         const o = this.getBuyOrderByCid(key, cid)
-        if(data.hasOwnProperty('price')) {
+        if (data.hasOwnProperty('price')) {
             o.price = data.price
         }
-        if(data.hasOwnProperty('tradeExecuted')) {
+        if (data.hasOwnProperty('tradeExecuted')) {
             o.meta.tradeExecuted = data.tradeExecuted
         }
-        if(data.hasOwnProperty('ex_id')) {
+        if (data.hasOwnProperty('ex_id')) {
             o.meta.ex_id = data.ex_id
         }
     }
@@ -93,8 +93,10 @@ export class OrderCycleService {
     }
 
     getLastBuyOrder(key: Key): Order {
-        if (key.id in this.buyOrders) {
-            return this.buyOrders[key.id][this.buyOrders[key.id].length - 1]
+        if (this.buyOrders.hasOwnProperty(key.id)) {
+            if (this.buyOrders[key.id].length && this.buyOrders[key.id].length > 0) {
+                return this.buyOrders[key.id][this.buyOrders[key.id].length - 1]
+            }
         }
     }
 
@@ -112,7 +114,7 @@ export class OrderCycleService {
     getBuyOrderByCid(key: Key, cid: number): Order {
         this.logger.log(this.buyOrders, "buy orders")
         for (const order of this.buyOrders[key.id]) {
-            if(order.cid === cid) {
+            if (order.cid === cid) {
                 return order
             }
         }
@@ -185,7 +187,7 @@ export class OrderCycleService {
         this.buyOrders = []
         this.sellOrders = []
         this.totalAmount = []
-        this.totalValue = []    
+        this.totalValue = []
     }
 
     private resetCycle(key: Key): void {
@@ -215,7 +217,7 @@ export class OrderCycleService {
             amount: this.totalAmount[key.id], // should be string when sending to bfx
             symbol: symbol,
             price: this.calcSellOrderPrice(key),
-            meta: { trailingPrice: 0 }  
+            meta: { trailingPrice: 0 }
         })
     }
 

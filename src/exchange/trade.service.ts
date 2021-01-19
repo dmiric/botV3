@@ -51,7 +51,7 @@ export class TradeService {
     ) { }
 
     getStatusInfo(): any {
-        // const behaviourInfo = this.behaviorService.getBehaviourInfo()
+        const behaviourInfo = this.behaviorService.getBehaviourInfo()
         let status = {}
         status = this.orderCycleService.getStatus()
         status['tradeStatus'] = this.tradeStatus
@@ -61,14 +61,11 @@ export class TradeService {
         status['activePosition'] = this.activePosition
         status['lastSignal'] = this.lastSignal
         status['lastSignalTime'] = this.lastSignalTime
-        /*
         status['behaviourInfo'] = {
             'candle_count': behaviourInfo['candles'].length,            
             'maxReach': behaviourInfo['maxReach'],
-            'nextOrder': behaviourInfo['nextOrder'],
-            'candles': behaviourInfo['candles']
+            'nextOrder': behaviourInfo['nextOrder']
         }
-        */
         return status;
     }
 
@@ -243,8 +240,6 @@ export class TradeService {
                         }
                     }
 
-
-
                     // pc: position closed
                     if (data[1] == 'pc') {
                         if (data[2][0] !== key.symbol) {
@@ -379,6 +374,7 @@ export class TradeService {
                     this.currentPrice = currentCandle.close;
 
                     if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId(key)) {
+
                         const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet, key)
                         //const orderId = 101;
                         // await new Promise(r => setTimeout(r, 500));

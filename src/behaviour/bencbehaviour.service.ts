@@ -26,9 +26,18 @@ export class BencBehaviourService {
     // do this some day if we start working with more behaviours
     // https://stackoverflow.com/questions/53776882/how-to-handle-nestjs-dependency-injection-when-extending-a-class-for-a-service
     public nextOrderIdThatMatchesRules(candles: Candle[], key: Key): number {
-        
-        if(this.candles && this.candles.length === candles.length) {
+
+        if (this.candles && this.candles.length === candles.length) {
             return 0
+        }
+
+        // get stack of candles to run a price check on
+        if (candles.length > 200) {
+            const lastBuyOrder = this.ordersCycle.getLastBuyOrder(key)
+            const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
+            if (candles[0].mts < tradeTimestamp) {
+                candles = this.getCandleStack(candles, tradeTimestamp)
+            }
         }
 
         this.candles = candles
@@ -38,12 +47,6 @@ export class BencBehaviourService {
         if (nextOrderId === 101) {
             this.reach = 1;
             return nextOrderId
-        }
-
-        // find next order
-        if (nextOrderId === 0) {
-            this.reach = 2;
-            return 0
         }
 
         // check if last candle is green
@@ -66,9 +69,8 @@ export class BencBehaviourService {
             return 0
         }
 
-        // get stack of candles to run a price check on
-        //const candleStack = this.getCandleStack(candles, lastCandle)
-        const candleStack = candles;
+        const candleStack = candles
+
         // find lowest low price in candle stack
         const lowestPrice = this.findLowestPrice(candleStack, 'low')
         const nextOrder = this.ordersService.getOrder(key, nextOrderId, lowestPrice)
@@ -89,8 +91,8 @@ export class BencBehaviourService {
 
     private isPriceLowEnough(key: Key, lowestPrice: number): boolean {
         const lastOrder = this.ordersCycle.getLastBuyOrder(key)
-        const conditionPrice: number = lastOrder.price - (lastOrder.price * key.safeDistance / 100) 
-        
+        const conditionPrice: number = lastOrder.price - (lastOrder.price * key.safeDistance / 100)
+
         console.log("Is Price Low Enough: " + lowestPrice + ":" + conditionPrice)
 
         if (lowestPrice < conditionPrice) {
@@ -114,21 +116,15 @@ export class BencBehaviourService {
         return false
     }
 
-    public getCandleStack(candles: Candle[], lastCandle: Candle): Candle[] {
+    public getCandleStack(candles: Candle[], tradeTimestamp: number): Candle[] {
         const reversedCandles = candles.reverse()
         const candleStack: Candle[] = []
 
         for (const candle of reversedCandles) {
-            // always take frist green candle
-            if (lastCandle.mts === candle.mts) {
-                candleStack.push(candle)
-                continue
-            }
-            // if any other green candle stop looking for more
-            if (this.isGreen(candle)) {
+            if (candle.mts < tradeTimestamp) {
                 break
             }
-            // add red candle to the stack
+
             candleStack.push(candle)
         }
         return candleStack.reverse()

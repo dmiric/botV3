@@ -76,7 +76,8 @@ export class ReconnectService {
                 id: apiOrder[31]['id'],
                 key: apiOrder[31]['key'],
                 aff_code: apiOrder['aff_code'],
-                tradeExecuted: tradeExecuted
+                tradeExecuted: tradeExecuted,
+                tradeTimestamp: apiOrder[5]
             }
         }
 
