@@ -36,10 +36,11 @@ export class BencBehaviourService {
             const lastBuyOrder = this.ordersCycle.getLastBuyOrder(key)
             console.log(lastBuyOrder)
             if (lastBuyOrder) {
+
                 const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
+                console.log(tradeTimestamp)
+                console.log(candles[0].mts)
                 if (candles[0].mts < tradeTimestamp) {
-                    console.log(tradeTimestamp)
-                    console.log(candles[0].mts)
                     candles = this.getCandleStack(candles, tradeTimestamp)
                 }
             }
