@@ -286,7 +286,7 @@ export class TradeService {
                             this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0] });
                         }
 
-                        if (data[2][0] == 'TRAILING STOP' && data[2][3] == key.symbol) {
+                        if (data[2][8] == 'TRAILING STOP' && data[2][3] == key.symbol) {
                             this.setTrailingOrderSent(true)
                             this.trailingStopOrderId = data[2][0]                              
                         }
