@@ -199,7 +199,7 @@ export class TradeService {
 
                         // if profit reached X% set tracking order
                         if (key.hasOwnProperty('trailingProfit') && key.hasOwnProperty('trailingDistance')) {
-                            if (data[2][1] !== 'ACTIVE' || this.trailingOrderSent) {
+                            if (data[2][1] !== 'ACTIVE' || this.trailingOrderSent || !this.currentPrice) {
                                 return
                             }
 
