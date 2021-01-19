@@ -381,8 +381,8 @@ export class TradeService {
                             const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
                             console.log(typeof tradeTimestamp)
                             console.log(tradeTimestamp)
-                            console.log(candleSet[0].mts)
-                            if (tradeTimestamp > candleSet[0].mts) {
+                            console.log(candleSet[candleSet.length - 1].mts)
+                            if (tradeTimestamp > candleSet[candleSet.length - 1].mts) {
                                 candleSet = this.behaviorService.getCandleStack(candleSet, tradeTimestamp)
                             }
                         } else {
