@@ -34,9 +34,12 @@ export class BencBehaviourService {
         // get stack of candles to run a price check on
         if (candles.length > 200) {
             const lastBuyOrder = this.ordersCycle.getLastBuyOrder(key)
+            console.log(lastBuyOrder)
             if (lastBuyOrder) {
                 const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
                 if (candles[0].mts < tradeTimestamp) {
+                    console.log(tradeTimestamp)
+                    console.log(candles[0].mts)
                     candles = this.getCandleStack(candles, tradeTimestamp)
                 }
             }
