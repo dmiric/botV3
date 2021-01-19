@@ -31,7 +31,7 @@ export class TradeService {
 
     private lastSignal: Key;
     private lastSignalTime: string;
-    
+
     private lastPositionUpdateTime = 0;
 
     private trailingOrderSent = false;
@@ -62,7 +62,7 @@ export class TradeService {
         status['lastSignal'] = this.lastSignal
         status['lastSignalTime'] = this.lastSignalTime
         status['behaviourInfo'] = {
-            'candle_count': behaviourInfo['candles'].length ? behaviourInfo['candles'].length : 0,            
+            'candle_count': behaviourInfo['candles'].length ? behaviourInfo['candles'].length : 0,
             'maxReach': behaviourInfo['maxReach'],
             'nextOrder': behaviourInfo['nextOrder']
         }
@@ -156,7 +156,7 @@ export class TradeService {
                         this.logger.log(data, "order socket")
                     }
                 } else {
-                    if(data[1] !== 'bu') {
+                    if (data[1] !== 'bu') {
                         this.logger.log(data, "order socket")
                     }
                 }
@@ -173,24 +173,24 @@ export class TradeService {
                     }
 
                     // hb: hearth beat
-                    if(data[1] == 'hb') {
+                    if (data[1] == 'hb') {
                         this.orderSocketService.requestReqcalc(key)
-                        
+
                         // hack to reconnect if position update is late 1 minute
-                        const secDelay = Math.floor( (Date.now() - this.lastPositionUpdateTime) / 1000 )
-                        if(secDelay > 60) {
+                        const secDelay = Math.floor((Date.now() - this.lastPositionUpdateTime) / 1000)
+                        if (secDelay > 60) {
                             this.orderSocketService.setReadyState(false)
                             // unsub from order stream
                             this.orderSubscription.unsubscribe()
                             this.logger.log(data, "reconnecting to order socket")
                             this.trade(key, true)
-                        } 
+                        }
                     }
 
                     // ws: wallet snapshot
                     if (data[1] == 'ws') {
                         this.orderSocketService.setReadyState(true)
-                        if(!reconnect) {
+                        if (!reconnect) {
                             this.candleStream(key)
                         }
                     }
@@ -246,7 +246,7 @@ export class TradeService {
                             return
                         }
 
-                        if(data[2][19]['order_id'] == this.trailingStopOrderId) {
+                        if (data[2][19]['order_id'] == this.trailingStopOrderId) {
                             this.setTrailingOrderSent(false)
                             this.trailingStopOrderId = 0
                         }
@@ -283,7 +283,7 @@ export class TradeService {
 
                         if (data[2][8] == 'TRAILING STOP' && data[2][3] == key.symbol) {
                             this.setTrailingOrderSent(true)
-                            this.trailingStopOrderId = data[2][0]                              
+                            this.trailingStopOrderId = data[2][0]
                         }
                     }
 
@@ -292,7 +292,7 @@ export class TradeService {
                         for (const order of data[2]) {
                             if (order[8] == 'TRAILING STOP' && order[3] == key.symbol) {
                                 this.setTrailingOrderSent(true)
-                                this.trailingStopOrderId = order[0]                                
+                                this.trailingStopOrderId = order[0]
                             }
                         }
                     }
@@ -372,6 +372,23 @@ export class TradeService {
 
                     // TODO: This price needs to be changed to real (current price???).
                     this.currentPrice = currentCandle.close;
+
+                    // get stack of candles to run a price check on
+                    if (candleSet.length > 220) {
+                        const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
+                        console.log(lastBuyOrder)
+                        if (lastBuyOrder) {
+                            const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
+                            console.log(typeof tradeTimestamp)
+                            console.log(tradeTimestamp)
+                            console.log(candleSet[0].mts)
+                            if (tradeTimestamp > candleSet[0].mts) {
+                                candleSet = this.behaviorService.getCandleStack(candleSet, tradeTimestamp)
+                            }
+                        } else {
+                            candleSet = []
+                        }
+                    }
 
                     if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId(key)) {
 

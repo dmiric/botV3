@@ -30,25 +30,13 @@ export class BencBehaviourService {
         if (this.candles && this.candles.length === candles.length) {
             return 0
         }
+        const candleStack: Candle[] = [];
 
-        // get stack of candles to run a price check on
-        if (candles.length > 200) {
-            const lastBuyOrder = this.ordersCycle.getLastBuyOrder(key)
-            console.log(lastBuyOrder)
-            if (lastBuyOrder) {
-
-                const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
-                console.log(typeof tradeTimestamp)
-                console.log(tradeTimestamp)
-                console.log(candles[0].mts)
-                if (candles[0].mts < tradeTimestamp) {
-
-                    candles = this.getCandleStack(candles, tradeTimestamp)
-                }
-            }
+        for(const c of candles) {
+            candleStack.push(c)
         }
 
-        this.candles = candles
+        this.candles = candleStack
 
         const nextOrderId = this.ordersCycle.getNextBuyOrderId(key)
         // in case this is the first order return it right away
@@ -58,7 +46,7 @@ export class BencBehaviourService {
         }
 
         // check if last candle is green
-        const lastCandle: Candle = candles[candles.length - 1]
+        const lastCandle: Candle = candleStack[candleStack.length - 1]
         if (!this.isGreen(lastCandle)) {
             this.reach = 3;
             return 0
@@ -71,13 +59,11 @@ export class BencBehaviourService {
         }
 
         // if candle before last is not red no need to continue
-        const candleBeforeLast: Candle = candles[candles.length - 2]
+        const candleBeforeLast: Candle = candleStack[candleStack.length - 2]
         if (!this.isRed(candleBeforeLast)) {
             this.reach = 5;
             return 0
         }
-
-        const candleStack = candles
 
         // find lowest low price in candle stack
         const lowestPrice = this.findLowestPrice(candleStack, 'low')
