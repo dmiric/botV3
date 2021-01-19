@@ -54,6 +54,8 @@ export class TradeService {
         status = this.orderCycleService.getStatus()
         status['tradeStatus'] = this.tradeStatus
         status['stoppedManually'] = this.stoppedManually
+        status['trailingStopOrder'] = this.trailingOrderSent
+        status['trailingStopOrderId'] = this.trailingStopOrderId
         status['activePosition'] = this.activePosition
         status['lastSignal'] = this.lastSignal
         status['lastSignalTime'] = this.lastSignalTime
@@ -227,6 +229,12 @@ export class TradeService {
                         if (data[2][0] !== key.symbol) {
                             return
                         }
+
+                        if(data[2][19]['order_id'] == this.trailingStopOrderId) {
+                            this.setTrailingOrderSent(false)
+                            this.trailingStopOrderId = 0
+                        }
+
                         this.resetTradeProcess(key)
                     }
 
@@ -262,7 +270,8 @@ export class TradeService {
                     if (data[1] == 'os') {
                         for (const order of data[2]) {
                             if (order[8] == 'TRAILING STOP' && order[3] == key.symbol) {
-                                this.trailingStopOrderId = order[0]
+                                this.setTrailingOrderSent(true)
+                                this.trailingStopOrderId = order[0]                                
                             }
                         }
                     }

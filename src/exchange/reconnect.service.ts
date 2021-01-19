@@ -40,9 +40,11 @@ export class ReconnectService {
                     this.logger.log(activeOrders, "Active Orders")
 
                     for (const activeOrder of activeOrders) {
-                        if (activeOrder[8] == 'TRAILING STOP') {
-                            this.tradeService.setTrailingOrderSent(true)
-                        }
+                        // we do this once we connect from order snapshot 
+                        // @see 
+                        // if (activeOrder[8] == 'TRAILING STOP') {
+                        //    this.tradeService.setTrailingOrderSent(true)
+                        // }
                         if (activeOrder[8] == 'LIMIT') {
                             const lastActiveBuyOrder = this.formatOrder(activeOrder, false)
                             this.logger.log(lastActiveBuyOrder, 'last active LIMIT order')
