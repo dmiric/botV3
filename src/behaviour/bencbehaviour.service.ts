@@ -127,7 +127,7 @@ export class BencBehaviourService {
         const candleStack: Candle[] = []
 
         for (const candle of reversedCandles) {
-            if (candle.mts < tradeTimestamp) {
+            if (candle.mts > tradeTimestamp) {
                 break
             }
 
