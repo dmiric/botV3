@@ -303,7 +303,7 @@ export class TradeService {
         this.candleSubscription = this.candleSocketService.messages$.subscribe(
             (message: string) => {
 
-                if (!this.getStatus() || this.isStopped() || this.isStarting()) {
+                if (!this.getStatus() || this.isStopped() || this.isStarting() || this.trailingOrderSent) {
                     return
                 }
 
