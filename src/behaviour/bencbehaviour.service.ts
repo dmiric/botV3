@@ -118,6 +118,7 @@ export class BencBehaviourService {
             }
             candleStack.push(candle)
         }
+        console.log(candleStack)
         return candleStack.reverse()
     }
 
