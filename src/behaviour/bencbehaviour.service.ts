@@ -17,7 +17,7 @@ export class BencBehaviourService {
 
     public getBehaviourInfo(): any {
         return {
-            'candles': this.candles,
+            'candles': this.candles ? this.candles : [],
             'maxReach': this.reach,
             'nextOrder': this.nextOrder
         }
