@@ -38,6 +38,7 @@ export class BencBehaviourService {
             if (lastBuyOrder) {
 
                 const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
+                console.log(typeof tradeTimestamp)
                 console.log(tradeTimestamp)
                 console.log(candles[0].mts)
                 if (candles[0].mts < tradeTimestamp) {
