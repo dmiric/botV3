@@ -30,7 +30,7 @@ export class OrdersService {
         this.availableForPosition[117] = 9.095847;
         this.availableForPosition[118] = 10.441692;
         this.availableForPosition[119] = 11.986670;
-        this.availableForPosition[119] = 13.760253;
+        this.availableForPosition[120] = 13.760253;
     }
 
     getOrders(): Order[] {
