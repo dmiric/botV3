@@ -22,7 +22,6 @@ export class RestService {
     async fetchActivePositions(): Promise<any> {
         const apiPath = 'v2/auth/r/positions'
         const res = await this.request(apiPath)
-        console.log(res)
         return res;
     }
 

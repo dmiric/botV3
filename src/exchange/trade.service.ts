@@ -15,6 +15,7 @@ import { Order } from '../interfaces/order.model'
 import { normalClosureMessage } from 'rxjs-websockets';
 import { OrderSocketService } from '../orders/ordersocket.service'
 import { RestService } from './rest.service';
+import { last } from 'rxjs/operators';
 
 @Injectable()
 export class TradeService {
@@ -130,7 +131,7 @@ export class TradeService {
         this.trailingOrderSent = trailing
     }
 
-    trade(key: Key, reconnect = false): void {
+    public trade(key: Key, reconnect = false): void {
         this.setLastSignal(key)
         this.lastPositionUpdateTime = 0
 
@@ -156,7 +157,7 @@ export class TradeService {
                         this.logger.log(data, "order socket")
                     }
                 } else {
-                    if (data[1] !== 'bu') {
+                    if (data[1] !== 'bu' && data[1] !== 'wu') {
                         this.logger.log(data, "order socket")
                     }
                 }
@@ -192,6 +193,7 @@ export class TradeService {
                         this.orderSocketService.setReadyState(true)
                         if (!reconnect) {
                             this.candleStream(key)
+                            this.logger.log(key, 'start -candle socket- with this key')
                         }
                     }
 
@@ -329,6 +331,8 @@ export class TradeService {
 
     private candleStream(key: Key) {
         let candleSet: Candle[] = [];
+        this.candleSocketService.createSocket()
+        this.logger.log(key, 'candle socket started with this key')
 
         this.candleSubscription = this.candleSocketService.messages$.subscribe(
             (message: string) => {
@@ -377,12 +381,22 @@ export class TradeService {
                     if (candleSet.length > 220) {
                         const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
                         if (lastBuyOrder) {
-                            const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
-                            if (tradeTimestamp > candleSet[candleSet.length - 1].mts) {
-                                candleSet = this.behaviorService.getCandleStack(candleSet, tradeTimestamp)
+                            if(lastBuyOrder.meta.tradeExecuted) {
+                                const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
+                                if (tradeTimestamp > candleSet[candleSet.length - 1].mts) {
+                                    candleSet = this.behaviorService.getCandleStack(candleSet, tradeTimestamp)
+                                    this.logger.log(candleSet, 'trim candle set')
+                                }
+                            } else {
+                                if(lastBuyOrder.meta.id > 101) {
+                                    candleSet = []
+                                    this.logger.log(candleSet, 'full reset candle set 1')
+                                }
                             }
+
                         } else {
                             candleSet = []
+                            this.logger.log(candleSet, 'full reset candle set 2')
                         }
                     }
 

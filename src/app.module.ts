@@ -8,7 +8,6 @@ import { ExchangeModule } from './exchange/exchange.module';
 import { LogModule } from './log/log.module';
 import { BencBehaviourService } from './behaviour/bencbehaviour.service';
 import { BehaviourModule } from './behaviour/behaviour.module';
-import { ArgvService } from './input/argv.service';
 import { LogService } from './log/log.service';
 import { CandleUtilService } from './candles/candleutil.service';
 import { OrderCyclesService } from './orders/ordercycles.service';
@@ -43,7 +42,6 @@ import { AppService } from './app.service';
     HookService,
     TradeService,
     BencBehaviourService,
-    ArgvService,
     LogService,
     CandleUtilService,
     OrderCyclesService,

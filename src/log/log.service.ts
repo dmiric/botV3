@@ -5,8 +5,6 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fse from 'fs-extra'
 import { Key } from '../interfaces/key.model';
-import { ArgvService } from '../input/argv.service';
-import { KeyService } from '../candles/key.service';
 
 @Injectable()
 export class LogService {
@@ -16,8 +14,6 @@ export class LogService {
     private currentItem = []
     private subTotalProfit = 0;
     private cryptoXlsDir = path.join(os.homedir(), 'Documents', 'CryptoXLS')
-
-    constructor(private argvService: ArgvService) { }
 
     newLine(key: Key): void {
         // if current item is defined
@@ -162,7 +158,7 @@ export class LogService {
         const endYear = endDate.getUTCFullYear()
         const endMonth = endDate.getUTCMonth()
 
-        const xlsFileName = this.argvService.getFile().split('.')
+        const xlsFileName = '' //this.argvService.getFile().split('.')
 
         let filePath = path.join(this.cryptoXlsDir, key.symbol, 'test', xlsFileName[0],
             startYear + '-' + startMonth + '_' + endYear + '-' + endMonth);

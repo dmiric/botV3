@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { ArgvService } from './argv.service';
 
 import HmacSHA384 from 'crypto-js/hmac-sha384';
 import hex from 'crypto-js/enc-hex';
@@ -14,8 +13,6 @@ export class ApiKeyService {
     
     private payload: Payload;
     private cryptoXlsDir = path.join(os.homedir(),'Documents','Crypto')
-
-    constructor(private argvService: ArgvService) { }
 
     private fileAccess(filePath: string): boolean {
         fs.access(filePath, fs.constants.F_OK, function (err) {

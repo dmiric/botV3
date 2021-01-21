@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import { Key } from '../interfaces/key.model';
-// import * as WebSocket from "ws";
 import { Subject, Observable, timer } from 'rxjs'
 import { share, switchMap, retryWhen, delayWhen } from 'rxjs/operators'
 import makeWebSocketObservable, {
@@ -11,17 +10,21 @@ import makeWebSocketObservable, {
 export class CandleSocketService {
 
     public input$ = new Subject<string>()
-    private socket$ = makeWebSocketObservable('wss://api-pub.bitfinex.com/ws/2')
+    private socket$: Observable<GetWebSocketResponses<WebSocketPayload>>
+    public messages$: Observable<WebSocketPayload>
 
-    public messages$: Observable<WebSocketPayload> = this.socket$.pipe(
-        // the observable produces a value once the websocket has been opened
+    public createSocket(): void {
+        this.socket$ = makeWebSocketObservable('wss://api-pub.bitfinex.com/ws/2')
+        this.messages$ = this.socket$.pipe(
+             // the observable produces a value once the websocket has been opened
         switchMap((getResponses: GetWebSocketResponses) => {
             console.log('candle socket opened')
             return getResponses(this.input$)
         }),
         share(),
         retryWhen(errors => errors.pipe( delayWhen(() => timer(1000)) )),
-    )
+        )
+    }  
 
     public setSubscription(key: Key): void {
         let keyString = "trade:" + key.timeframe + ":" + key.symbol
