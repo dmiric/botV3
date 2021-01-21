@@ -29,9 +29,8 @@ export class ReconnectService {
                 
                 this.logger.log(lastHistBuyOrders)
                 
-                if (lastHistBuyOrders && lastHistBuyOrders[0].length >= 31) {
-
-                    if(lastHistBuyOrders[0][31]['id']) {
+                if (lastHistBuyOrders) {
+                    if(typeof lastHistBuyOrders[0][31] === 'object' && lastHistBuyOrders[0][31] !== null && lastHistBuyOrders[0][31].hasOwnProperty('id')) {
                     const lastHistBuyOrder = this.formatOrder(lastHistBuyOrders[0], true)
                     this.logger.log(lastHistBuyOrder, "Last History Buy Order")
 
