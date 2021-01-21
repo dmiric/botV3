@@ -27,7 +27,7 @@ export class ReconnectService {
                 const lastOrderId = pos[19]['order_id']
                 const lastHistBuyOrders = await this.restService.fetchOrders(pos[0], { id: [lastOrderId] }, true)
 
-                if (lastHistBuyOrders[0].length >= 32 && lastHistBuyOrders[0][32].hasOwnProperty('id')) {
+                if (lastHistBuyOrders && lastHistBuyOrders[0].length >= 32 && lastHistBuyOrders[0][32].hasOwnProperty('id')) {
 
                     const lastHistBuyOrder = this.formatOrder(lastHistBuyOrders[0], true)
                     this.logger.log(lastHistBuyOrder, "Last History Buy Order")

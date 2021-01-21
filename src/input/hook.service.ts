@@ -74,6 +74,11 @@ export class HookService {
     }
 
     validate(req: HookReqDto): boolean {
+        if (req.action !== 'long' && req.action !== 'close' && req.action !== 'trail') {
+            console.log("Incorrect action param.")
+            return false
+        }
+
         if (!req.hasOwnProperty('action')) {
             console.log("Missing an action param.")
             return false
@@ -81,11 +86,6 @@ export class HookService {
 
         if (!req.hasOwnProperty('symbol')) {
             console.log("Missing a symbol param.")
-            return false
-        }
-
-        if (req.action !== 'long' && req.action !== 'close') {
-            console.log("Incorrect action param.")
             return false
         }
 
@@ -100,6 +100,18 @@ export class HookService {
                 return false
             }
 
+            if(req.hasOwnProperty("priceTrailing")) {
+                const priceTrailing = req.priceTrailing;
+                if(!priceTrailing.hasOwnProperty('profit')) {
+                    return false
+                }
+                if(!priceTrailing.hasOwnProperty('distance')) {
+                    return false
+                }
+            }
+        }
+
+        if (req.action === 'trail') {
             if(req.hasOwnProperty("priceTrailing")) {
                 const priceTrailing = req.priceTrailing;
                 if(!priceTrailing.hasOwnProperty('profit')) {
