@@ -61,6 +61,7 @@ export class ReconnectService {
                     this.logger.log(restartOrder, 'restart order')
                     this.tradeService.restartTrade(key, restartOrder)
                 } else {
+                    this.tradeService.setStarting(false)
                     // manual position open
                     this.tradeService.setManualPosition(true)
                 }
