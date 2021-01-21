@@ -26,9 +26,12 @@ export class ReconnectService {
                 // Last buy order from history
                 const lastOrderId = pos[19]['order_id']
                 const lastHistBuyOrders = await this.restService.fetchOrders(pos[0], { id: [lastOrderId] }, true)
+                
+                this.logger.log(lastHistBuyOrders)
+                
+                if (lastHistBuyOrders && lastHistBuyOrders[0].length >= 31) {
 
-                if (lastHistBuyOrders && lastHistBuyOrders[0].length >= 32 && lastHistBuyOrders[0][32].hasOwnProperty('id')) {
-
+                    if(lastHistBuyOrders[0][31]['id']) {
                     const lastHistBuyOrder = this.formatOrder(lastHistBuyOrders[0], true)
                     this.logger.log(lastHistBuyOrder, "Last History Buy Order")
 
@@ -60,6 +63,7 @@ export class ReconnectService {
 
                     this.logger.log(restartOrder, 'restart order')
                     this.tradeService.restartTrade(key, restartOrder)
+                    }
                 } else {
                     this.tradeService.setStarting(false)
                     // manual position open
