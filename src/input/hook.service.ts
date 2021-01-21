@@ -52,7 +52,25 @@ export class HookService {
             this.tradeService.trade(key)
         }
 
-        
+        if(!this.tradeService.getManualPosition()) {
+            return
+        }
+
+        if (req.action == 'trail') {
+            key = {
+                action: req.action,
+                symbol: req.symbol,
+                trade: "trade"
+            }
+
+            if(req.hasOwnProperty("priceTrailing")) {
+                key["trailingProfit"] = req.priceTrailing.profit
+                key["trailingDistance"] = req.priceTrailing.distance
+            }
+
+            this.tradeService.trade(key, true)
+        }  
+     
     }
 
     validate(req: HookReqDto): boolean {

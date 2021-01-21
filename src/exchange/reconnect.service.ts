@@ -27,36 +27,43 @@ export class ReconnectService {
                 const lastOrderId = pos[19]['order_id']
                 const lastHistBuyOrders = await this.restService.fetchOrders(pos[0], { id: [lastOrderId] }, true)
 
-                const lastHistBuyOrder = this.formatOrder(lastHistBuyOrders[0], true)
-                this.logger.log(lastHistBuyOrder, "Last History Buy Order")
+                if (lastHistBuyOrders[0].length >= 32 && lastHistBuyOrders[0][32].hasOwnProperty('id')) {
 
-                let key: Key = lastHistBuyOrder['meta']['key']
-                let restartOrder = lastHistBuyOrder
+                    const lastHistBuyOrder = this.formatOrder(lastHistBuyOrders[0], true)
+                    this.logger.log(lastHistBuyOrder, "Last History Buy Order")
 
-                // Active orders
-                const activeOrders = await this.restService.fetchOrders(pos[0])
 
-                if (activeOrders && activeOrders.length > 0) {
-                    this.logger.log(activeOrders, "Active Orders")
+                    let key: Key = lastHistBuyOrder['meta']['key']
+                    let restartOrder = lastHistBuyOrder
 
-                    for (const activeOrder of activeOrders) {
-                        // we do this once we connect from order snapshot 
-                        // @see 
-                        // if (activeOrder[8] == 'TRAILING STOP') {
-                        //    this.tradeService.setTrailingOrderSent(true)
-                        // }
-                        if (activeOrder[8] == 'LIMIT') {
-                            const lastActiveBuyOrder = this.formatOrder(activeOrder, false)
-                            this.logger.log(lastActiveBuyOrder, 'last active LIMIT order')
+                    // Active orders
+                    const activeOrders = await this.restService.fetchOrders(pos[0])
 
-                            key = lastActiveBuyOrder['meta']['key']
-                            restartOrder = lastActiveBuyOrder
+                    if (activeOrders && activeOrders.length > 0) {
+                        this.logger.log(activeOrders, "Active Orders")
+
+                        for (const activeOrder of activeOrders) {
+                            // we do this once we connect from order snapshot 
+                            // @see 
+                            // if (activeOrder[8] == 'TRAILING STOP') {
+                            //    this.tradeService.setTrailingOrderSent(true)
+                            // }
+                            if (activeOrder[8] == 'LIMIT') {
+                                const lastActiveBuyOrder = this.formatOrder(activeOrder, false)
+                                this.logger.log(lastActiveBuyOrder, 'last active LIMIT order')
+
+                                key = lastActiveBuyOrder['meta']['key']
+                                restartOrder = lastActiveBuyOrder
+                            }
                         }
                     }
-                }
 
-                this.logger.log(restartOrder, 'restart order')
-                this.tradeService.restartTrade(key, restartOrder)
+                    this.logger.log(restartOrder, 'restart order')
+                    this.tradeService.restartTrade(key, restartOrder)
+                } else {
+                    // manual position open
+                    this.tradeService.setManualPosition(true)
+                }
             }
         }
 

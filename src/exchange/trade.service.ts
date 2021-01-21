@@ -27,6 +27,7 @@ export class TradeService {
     private candleSubscription: Subscription;
     private orderSubscription: Subscription;
 
+    private manualPosition = false;
     private activePosition = [];
     private currentPrice = 0;
 
@@ -60,6 +61,7 @@ export class TradeService {
         status['trailingStopOrder'] = this.trailingOrderSent
         status['trailingStopOrderId'] = this.trailingStopOrderId
         status['activePosition'] = this.activePosition
+        status['manualPosition'] = this.manualPosition
         status['lastSignal'] = this.lastSignal
         status['lastSignalTime'] = this.lastSignalTime
         status['behaviourInfo'] = {
@@ -88,6 +90,14 @@ export class TradeService {
 
     isStopped(): boolean {
         return this.stoppedManually
+    }
+
+    setManualPosition(status: boolean): boolean {
+        return this.manualPosition = status;
+    }
+
+    getManualPosition(): boolean {
+        return this.manualPosition;
     }
 
     setLastSignal(key: Key): void {
@@ -250,6 +260,7 @@ export class TradeService {
 
                         if (data[2][19]['order_id'] == this.trailingStopOrderId) {
                             this.setTrailingOrderSent(false)
+                            this.setManualPosition(false)
                             this.trailingStopOrderId = 0
                         }
 
