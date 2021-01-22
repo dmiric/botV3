@@ -124,7 +124,7 @@ export class TradeService {
             this.orderSocketService.cancelOrder(o[0])
         }
 
-        if (this.getStatus() && this.activePosition[2] > 0 && this.activePosition[7] > 0.5) {
+        if (this.getStatus() && this.activePosition[2] > 0 && this.activePosition[7] > key.closePercent && this.activePosition[7] > 0.5) {
             this.orderSocketService.closePosition(key, this.activePosition[2])
         }
     }

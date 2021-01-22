@@ -20,7 +20,8 @@ export class HookService {
                 id: 'id' + Math.floor(Math.random() * (999999999 + 1) + 0),
                 action: req.action,
                 symbol: req.symbol,
-                trade: "trade"
+                trade: "trade",
+                closePercent: req.closePercent
             }
 
             this.tradeService.closePosition(key)
@@ -87,6 +88,14 @@ export class HookService {
         if (!req.hasOwnProperty('symbol')) {
             console.log("Missing a symbol param.")
             return false
+        }
+
+        if (req.action === 'close') {
+            if (!req.hasOwnProperty('closePercent')) {
+                console.log("Missing closePercent param.")
+                return false
+            }
+
         }
 
         if (req.action === 'long') {

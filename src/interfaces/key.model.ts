@@ -13,4 +13,5 @@ export interface Key {
   safeDistance?: number;
   trailingProfit?: number;
   trailingDistance?: number;
+  closePercent?: number;
 }

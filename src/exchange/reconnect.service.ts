@@ -7,6 +7,8 @@ import { Order } from '../interfaces/order.model'
 @Injectable()
 export class ReconnectService {
 
+    private setManualPosition = false
+
     constructor(
         private restService: RestService,
         private tradeService: TradeService,
@@ -14,7 +16,7 @@ export class ReconnectService {
     }
 
     async reConnect(): Promise<any> {
-
+        // prevent signals while we are setting up the state
         this.tradeService.setStarting(true)
 
         const positions = await this.restService.fetchActivePositions()
@@ -62,19 +64,22 @@ export class ReconnectService {
 
                     this.logger.log(restartOrder, 'restart order')
                     this.tradeService.restartTrade(key, restartOrder)
+                    } else { 
+                        // the last order was not created by this bot
+                        this.setManualPosition = true
                     }
-                } else {
-                    this.tradeService.setStarting(false)
-                    // manual position open
-                    this.tradeService.setManualPosition(true)
                 }
             }
         }
 
-        this.tradeService.setStarting(false)
+        if(this.setManualPosition) {
+            this.tradeService.setManualPosition(true)
+        }
 
+        this.tradeService.setStarting(false)
     }
 
+    // TODO: try using order convert form bfx libarary here see what happens
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     private formatOrder(apiOrder: any, tradeExecuted: boolean): Order {
         const order: Order = {
