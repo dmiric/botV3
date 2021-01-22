@@ -118,13 +118,13 @@ export class TradeService {
             this.orderSocketService.cancelOrder(this.trailingStopOrderId)
         }
 
-        // cancel all buy orders for the symbol
-        const activeOrders = await this.restService.fetchOrders(key.symbol)
-        for (const o of activeOrders) {
-            this.orderSocketService.cancelOrder(o[0])
-        }
-
         if (this.getStatus() && this.activePosition[2] > 0 && this.activePosition[7] > key.closePercent && this.activePosition[7] > 0.5) {
+            // cancel all buy orders for the symbol
+            const activeOrders = await this.restService.fetchOrders(key.symbol)
+            for (const o of activeOrders) {
+                this.orderSocketService.cancelOrder(o[0])
+            }
+            
             this.orderSocketService.closePosition(key, this.activePosition[2])
         }
     }
@@ -392,14 +392,14 @@ export class TradeService {
                     if (candleSet.length > 220) {
                         const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
                         if (lastBuyOrder) {
-                            if(lastBuyOrder.meta.tradeExecuted) {
+                            if (lastBuyOrder.meta.tradeExecuted) {
                                 const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
                                 if (tradeTimestamp > candleSet[candleSet.length - 1].mts) {
                                     candleSet = this.behaviorService.getCandleStack(candleSet, tradeTimestamp)
                                     this.logger.log(candleSet, 'trim candle set')
                                 }
                             } else {
-                                if(lastBuyOrder.meta.id > 101) {
+                                if (lastBuyOrder.meta.id > 101) {
                                     candleSet = []
                                     this.logger.log(candleSet, 'full reset candle set 1')
                                 }
