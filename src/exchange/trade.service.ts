@@ -35,6 +35,8 @@ export class TradeService {
     private lastSignal: Key;
     private lastSignalTime: string;
 
+    private lastLongKey: Key;
+
     private lastPositionUpdateTime = 0;
 
     private trailingOrderSent = false;
@@ -55,17 +57,25 @@ export class TradeService {
 
     getStatusInfo(): any {
         const behaviourInfo = this.behaviorService.getBehaviourInfo()
+        let lastBuyOrderFormated = {}
+        let buyOrders = {}
+        if(this.lastLongKey) {
+            buyOrders = this.orderCycleService.getStatus()
+            const lastBuyOrder = this.orderCycleService.getLastBuyOrder(this.lastLongKey)
+            lastBuyOrderFormated = { 'type': lastBuyOrder.type, 'amount': lastBuyOrder.amount, 'price': lastBuyOrder.price, ...lastBuyOrder.meta  }   
+        }
         const status = {}
         status['tradeStatus'] = this.tradeStatus       
         status['activePosValue'] = this.activePosition[6]
         status['activePosPercent'] = this.activePosition[7]
         status['activePosMaxPercent'] = this.activePositionMaxPerc
+        status['lastBuyOrder'] = lastBuyOrderFormated ? lastBuyOrderFormated : {}
         status['manualPosition'] = this.manualPosition
         status['stoppedManually'] = this.stoppedManually
         status['trailingStopOrder'] = this.trailingOrderSent
-        status['trailingStopOrderId'] = this.trailingStopOrderId 
+        status['trailingStopOrderId'] = this.trailingStopOrderId
         status['lastSignal'] = this.lastSignal
-        status['buyOrders'] = this.orderCycleService.getStatus()
+        status['buyOrders'] = buyOrders
         status['lastSignalTime'] = this.lastSignalTime
         status['activePosition'] = this.activePosition
         status['behaviourInfo'] = {
@@ -105,6 +115,9 @@ export class TradeService {
     }
 
     setLastSignal(key: Key): void {
+        if(key.action == 'long') {
+            this.lastLongKey = key
+        }
         this.lastSignal = key;
         const d = new Date();
         this.lastSignalTime = d.toString();
