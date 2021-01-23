@@ -59,7 +59,7 @@ export class TradeService {
         status['tradeStatus'] = this.tradeStatus       
         status['activePosValue'] = this.activePosition[6]
         status['activePosPercent'] = this.activePosition[7]
-        status['activePosMaxPercent'] = this.activePosition[7]
+        status['activePosMaxPercent'] = this.activePositionMaxPerc
         status['manualPosition'] = this.manualPosition
         status['stoppedManually'] = this.stoppedManually
         status['trailingStopOrder'] = this.trailingOrderSent
