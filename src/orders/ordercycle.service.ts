@@ -17,11 +17,7 @@ export class OrderCycleService {
     ) { }
 
     getStatus() {
-        const status = {
-            "buyOrders": { ...this.buyOrders }
-        }
-
-        return status;
+        return this.buyOrders
     }
 
     setCurrentBalance(key: Key, change = 0): void {

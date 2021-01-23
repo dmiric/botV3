@@ -30,6 +30,7 @@ export class TradeService {
     private manualPosition = false;
     private activePosition = [];
     private currentPrice = 0;
+    private activePositionMaxPerc = 0;
 
     private lastSignal: Key;
     private lastSignalTime: string;
@@ -54,16 +55,19 @@ export class TradeService {
 
     getStatusInfo(): any {
         const behaviourInfo = this.behaviorService.getBehaviourInfo()
-        let status = {}
-        status = this.orderCycleService.getStatus()
-        status['tradeStatus'] = this.tradeStatus
+        const status = {}
+        status['tradeStatus'] = this.tradeStatus       
+        status['activePosValue'] = this.activePosition[6]
+        status['activePosPercent'] = this.activePosition[7]
+        status['activePosMaxPercent'] = this.activePosition[7]
+        status['manualPosition'] = this.manualPosition
         status['stoppedManually'] = this.stoppedManually
         status['trailingStopOrder'] = this.trailingOrderSent
-        status['trailingStopOrderId'] = this.trailingStopOrderId
-        status['activePosition'] = this.activePosition
-        status['manualPosition'] = this.manualPosition
+        status['trailingStopOrderId'] = this.trailingStopOrderId 
         status['lastSignal'] = this.lastSignal
+        status['buyOrders'] = this.orderCycleService.getStatus()
         status['lastSignalTime'] = this.lastSignalTime
+        status['activePosition'] = this.activePosition
         status['behaviourInfo'] = {
             'candle_count': behaviourInfo['candles'].length ? behaviourInfo['candles'].length : 0,
             'maxReach': behaviourInfo['maxReach'],
@@ -229,6 +233,10 @@ export class TradeService {
                             this.activePosition = data[2]
                         }
 
+                        if(data[2][7] > this.activePositionMaxPerc) {
+                            this.activePositionMaxPerc = data[2][7]
+                        }
+
                         // if profit reached X% set tracking order
                         if (key.hasOwnProperty('trailingProfit') && key.hasOwnProperty('trailingDistance')) {
                             if (data[2][1] !== 'ACTIVE' || this.trailingOrderSent || !this.currentPrice) {
@@ -261,6 +269,8 @@ export class TradeService {
                         if (data[2][19]['order_id'] == this.trailingStopOrderId) {
                             this.setTrailingOrderSent(false)
                             this.setManualPosition(false)
+                            this.activePosition = []
+                            this.activePositionMaxPerc = 0
                             this.trailingStopOrderId = 0
                         }
 
