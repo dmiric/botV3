@@ -15,30 +15,32 @@ import { Order } from '../interfaces/order.model'
 import { normalClosureMessage } from 'rxjs-websockets';
 import { OrderSocketService } from '../orders/ordersocket.service'
 import { RestService } from './rest.service';
-import { last } from 'rxjs/operators';
 
 @Injectable()
 export class TradeService {
 
+    // trade process
     private tradeStatus = false;
     private stoppedManually = false;
     private starting = false;
 
+    // sockets
     private candleSubscription: Subscription;
     private orderSubscription: Subscription;
 
+    // position
     private manualPosition = false;
     private activePosition = [];
     private currentPrice = 0;
     private activePositionMaxPerc = 0;
-
-    private lastSignal: Key;
-    private lastSignalTime: string;
-
-    private lastLongKey: Key;
-
     private lastPositionUpdateTime = 0;
 
+    // signal
+    private lastSignal: Key;
+    private lastSignalTime: string;
+    private lastLongKey: Key;
+
+    // trailing order
     private trailingOrderSent = false;
     private trailingStopOrderId = 0;
 
@@ -131,15 +133,15 @@ export class TradeService {
         // check if trade is active
         // check if position is positive
         // check if we are in profit over 0.5% - position[7]
-        if (this.trailingOrderSent && this.trailingStopOrderId > 0) {
-            this.orderSocketService.cancelOrder(this.trailingStopOrderId)
-        }
-
         if (this.getStatus() && this.activePosition[2] > 0 && this.activePosition[7] > key.closePercent && this.activePosition[7] > 0.5) {
             // cancel all buy orders for the symbol
             const activeOrders = await this.restService.fetchOrders(key.symbol)
             for (const o of activeOrders) {
                 this.orderSocketService.cancelOrder(o[0])
+            }
+
+            if (this.trailingOrderSent && this.trailingStopOrderId > 0) {
+                this.orderSocketService.cancelOrder(this.trailingStopOrderId)
             }
             
             this.orderSocketService.closePosition(key, this.activePosition[2])
@@ -483,8 +485,15 @@ export class TradeService {
         this.orderCycleService.finishOrderCycle(key)
         // unsub from order stream
         this.orderSubscription.unsubscribe()
+        // reset active position
+        this.activePosition = []
+        this.currentPrice = 0
+        this.activePositionMaxPerc = 0
+        this.lastPositionUpdateTime = 0
+
         // set process inactive
         this.setStatus(false)
+
 
         this.logger.log("Done!", "reset trade process")
     }
