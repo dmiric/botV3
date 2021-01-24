@@ -130,16 +130,24 @@ export class TradeService {
 
     async closePosition(key: Key): Promise<void> {
         this.setLastSignal(key)
-        // check if trade is active
+
+        if(!this.getStatus()) {
+            return
+        }
+
+        if(!this.activePosition && this.activePosition.length < 1) {
+            return
+        }
         // check if position is positive
         // check if we are in profit over 0.5% - position[7]
-        if (this.getStatus() && this.activePosition[2] > 0 && this.activePosition[7] > key.closePercent && this.activePosition[7] > 0.5) {
+        if (this.activePosition[2] > 0 && this.activePosition[7] > key.closePercent && this.activePosition[7] > 0.5) {
             // cancel all buy orders for the symbol
             const activeOrders = await this.restService.fetchOrders(key.symbol)
             for (const o of activeOrders) {
                 this.orderSocketService.cancelOrder(o[0])
             }
 
+            // cancel trailng stop order
             if (this.trailingOrderSent && this.trailingStopOrderId > 0) {
                 this.orderSocketService.cancelOrder(this.trailingStopOrderId)
             }
