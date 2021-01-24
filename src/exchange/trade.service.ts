@@ -61,13 +61,16 @@ export class TradeService {
         const behaviourInfo = this.behaviorService.getBehaviourInfo()
         let lastBuyOrderFormated = {}
         let buyOrders = {}
-        if(this.lastLongKey) {
+        if (this.lastLongKey) {
             buyOrders = this.orderCycleService.getStatus()
             const lastBuyOrder = this.orderCycleService.getLastBuyOrder(this.lastLongKey)
-            lastBuyOrderFormated = { 'type': lastBuyOrder.type, 'amount': lastBuyOrder.amount, 'price': lastBuyOrder.price, ...lastBuyOrder.meta  }   
+            if (lastBuyOrder) {
+                lastBuyOrderFormated = { 'type': lastBuyOrder.type, 'amount': lastBuyOrder.amount, 'price': lastBuyOrder.price, ...lastBuyOrder.meta }
+            }
         }
+
         const status = {}
-        status['tradeStatus'] = this.tradeStatus       
+        status['tradeStatus'] = this.tradeStatus
         status['activePosValue'] = this.activePosition[6]
         status['activePosPercent'] = this.activePosition[7]
         status['activePosMaxPercent'] = this.activePositionMaxPerc
@@ -117,7 +120,7 @@ export class TradeService {
     }
 
     setLastSignal(key: Key): void {
-        if(key.action == 'long') {
+        if (key.action == 'long') {
             this.lastLongKey = key
         }
         this.lastSignal = key;
@@ -131,11 +134,11 @@ export class TradeService {
     async closePosition(key: Key): Promise<void> {
         this.setLastSignal(key)
 
-        if(!this.getStatus()) {
+        if (!this.getStatus()) {
             return
         }
 
-        if(!this.activePosition && this.activePosition.length < 1) {
+        if (!this.activePosition && this.activePosition.length < 1) {
             return
         }
         // check if position is positive
@@ -151,7 +154,7 @@ export class TradeService {
             if (this.trailingOrderSent && this.trailingStopOrderId > 0) {
                 this.orderSocketService.cancelOrder(this.trailingStopOrderId)
             }
-            
+
             this.orderSocketService.closePosition(key, this.activePosition[2])
         }
     }
@@ -256,7 +259,7 @@ export class TradeService {
                             this.activePosition = data[2]
                         }
 
-                        if(data[2][7] > this.activePositionMaxPerc) {
+                        if (data[2][7] > this.activePositionMaxPerc) {
                             this.activePositionMaxPerc = data[2][7]
                         }
 
