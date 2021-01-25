@@ -425,11 +425,13 @@ export class TradeService {
                     this.currentPrice = currentCandle.close;
 
                     // get stack of candles to run a price check on
-                    if (candleSet.length > 220) {
+                    if (candleSet.length > 200) {
                         const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
                         if (lastBuyOrder) {
+                            this.logger.log(lastBuyOrder, 'lastBuyOrder candles > 200')
                             if (lastBuyOrder.meta.tradeExecuted) {
                                 const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
+                                this.logger.log([tradeTimestamp, candleSet[candleSet.length - 1].mts], 'tradeTimeStamp : lastCandle mts')
                                 if (tradeTimestamp > candleSet[candleSet.length - 1].mts) {
                                     candleSet = this.behaviorService.getCandleStack(candleSet, tradeTimestamp)
                                     this.logger.log(candleSet, 'trim candle set')
