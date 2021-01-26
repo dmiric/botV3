@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger, LoggerService, Inject } from '@nestjs/common'
 import { OrdersService } from '../orders/orders.service'
 import { Candle } from '../interfaces/candle.model'
 import { OrderCycleService } from '../orders/ordercycle.service'
@@ -13,7 +13,9 @@ export class BencBehaviourService {
     private nextOrder;
     private lowestPrice: number;
 
-    constructor(private ordersService: OrdersService, private ordersCycle: OrderCycleService) { }
+    constructor(private ordersService: OrdersService, 
+        private ordersCycle: OrderCycleService,
+        @Inject(Logger) private readonly logger: LoggerService ) { }
 
     public getBehaviourInfo(): any {
         return {
@@ -41,6 +43,7 @@ export class BencBehaviourService {
         const nextOrderId = this.ordersCycle.getNextBuyOrderId(key)
         // in case this is the first order return it right away
         if (nextOrderId === 101) {
+            this.logger.log(key, "nextOrderIdThatMatchesRules:45")
             this.reach = 1;
             return nextOrderId
         }

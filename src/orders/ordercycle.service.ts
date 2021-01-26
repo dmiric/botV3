@@ -16,31 +16,18 @@ export class OrderCycleService {
         @Inject(Logger) private readonly logger: LoggerService
     ) { }
 
-    getStatus() {
-        return  {...this.buyOrders}
-    }
-
-    setCurrentBalance(key: Key, change = 0): void {
-        // set initial balance
-        if (!(key.id in this.currentBalance) && change === 0) {
-            this.currentBalance[key.id] = key.startBalance
-        }
-
-        if (key.id in this.currentBalance && change !== 0) {
-            this.currentBalance[key.id] = this.currentBalance[key.id] + change
-        }
-    }
-
     addBuyOrder(key: Key, order: Order, price: number): void {
         const o = { ...order }
         o.price = price
 
-        if (!(key.id in this.buyOrders)) {
+        if (!this.buyOrders.hasOwnProperty(key.id) ) {
             this.buyOrders[key.id] = []
         }
         this.buyOrders[key.id].push(o)
+        this.logger.log(key, 'addBuyOrder: 27')
     }
-
+    
+    // tu nije
     updateBuyOrder(key: Key, cid: number, data: any): void {
         const o = this.getBuyOrderByCid(key, cid)
         if (data.hasOwnProperty('price')) {
@@ -77,7 +64,8 @@ export class OrderCycleService {
     }
 
     getNextBuyOrderId(key: Key): number {
-        if (!(key.id in this.buyOrders) || this.buyOrders[key.id].length < 1) {
+        if (!this.buyOrders.hasOwnProperty(key.id) || this.buyOrders[key.id].length < 1) {
+            this.logger.log(key, "getNextBuyOrderId:67")
             return 101 // 101 is always first order
         }
 
@@ -114,6 +102,26 @@ export class OrderCycleService {
                 return order
             }
         }
+    }
+
+
+    // old code not used here anymore    
+    setCurrentBalance(key: Key, change = 0): void {
+        // set initial balance
+        if (!this.currentBalance.hasOwnProperty(key.id) && change === 0) {
+            this.currentBalance[key.id] = key.startBalance
+        }
+
+        if (this.currentBalance.hasOwnProperty(key.id)&& change !== 0) {
+            this.currentBalance[key.id] = this.currentBalance[key.id] + change
+        }
+    }
+
+    public finishOrderCycle(key: Key): void {
+        this.buyOrders = []
+        this.sellOrders = []
+        this.totalAmount = []
+        this.totalValue = []
     }
 
     buyOrderBought(key: Key, buyOrder: Order): void {
@@ -179,12 +187,7 @@ export class OrderCycleService {
         this.resetCycle(key)
     }
 
-    public finishOrderCycle(key: Key): void {
-        this.buyOrders = []
-        this.sellOrders = []
-        this.totalAmount = []
-        this.totalValue = []
-    }
+
 
     private resetCycle(key: Key): void {
         this.buyOrders[key.id] = []

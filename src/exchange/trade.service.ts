@@ -62,7 +62,7 @@ export class TradeService {
         let lastBuyOrderFormated = {}
         let buyOrders = {}
         if (this.lastLongKey) {
-            buyOrders = this.orderCycleService.getStatus()
+            buyOrders = this.orderCycleService.getBuyOrders(this.lastLongKey)
             const lastBuyOrder = this.orderCycleService.getLastBuyOrder(this.lastLongKey)
             if (lastBuyOrder) {
                 lastBuyOrderFormated = { 'type': lastBuyOrder.type, 'amount': lastBuyOrder.amount, 'price': lastBuyOrder.price, ...lastBuyOrder.meta }
@@ -456,8 +456,9 @@ export class TradeService {
                         // await new Promise(r => setTimeout(r, 500));
                         if (orderId && this.orderSocketService.getSocketReadyState()) {
                             this.logger.log(data, 'candle socket')
+                            this.logger.log(key, 'candle socket key: 459')
                             const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
-
+                            this.logger.log(key, 'candle socket key: 461')
                             let buyPrice = 0
                             if (order.meta.id != 101) {
                                 buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
