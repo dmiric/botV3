@@ -27,7 +27,6 @@ export class OrderCycleService {
         this.logger.log(key, 'addBuyOrder: 27')
     }
     
-    // tu nije
     updateBuyOrder(key: Key, cid: number, data: any): void {
         const o = this.getBuyOrderByCid(key, cid)
         if (data.hasOwnProperty('price')) {
@@ -38,6 +37,9 @@ export class OrderCycleService {
         }
         if (data.hasOwnProperty('ex_id')) {
             o.meta.ex_id = data.ex_id
+        }
+        if (data.hasOwnProperty('tradeTimestamp')) {
+            o.meta.tradeTimestamp = data.tradeTimestamp
         }
     }
 
