@@ -400,6 +400,7 @@ export class TradeService {
                 } else {
                     if (data.event) {
                         this.logger.log(data, 'candle socket')
+                        this.logger.log(key, 'event key')
                         return;
                     }
 
@@ -445,6 +446,7 @@ export class TradeService {
 
                         } else {
                             candleSet = []
+                            this.logger.log(key, 'full reset candle set 2 - key')
                             this.logger.log(candleSet, 'full reset candle set 2')
                         }
                     }
@@ -493,6 +495,8 @@ export class TradeService {
 
     resetTradeProcess(key: Key): void {
         this.logger.log("Resetting...", "reset trade process")
+        const lastStatus = this.getStatusInfo()
+        this.logger.log(lastStatus, "Last Status")
         // unsub candle stream
         this.candleSubscription.unsubscribe()
         // clean up all the data from the previous cycle
