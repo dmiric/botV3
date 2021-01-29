@@ -292,14 +292,6 @@ export class TradeService {
                             return
                         }
 
-                        if (data[2][19]['order_id'] == this.trailingStopOrderId) {
-                            this.setTrailingOrderSent(false)
-                            this.setManualPosition(false)
-                            this.activePosition = []
-                            this.activePositionMaxPerc = 0
-                            this.trailingStopOrderId = 0
-                        }
-
                         this.resetTradeProcess(key)
                     }
 
@@ -506,15 +498,16 @@ export class TradeService {
         // unsub from order stream
         this.orderSubscription.unsubscribe()
         // reset active position
-        this.activePosition = []
         this.currentPrice = 0
         this.activePositionMaxPerc = 0
         this.lastPositionUpdateTime = 0
+        this.setTrailingOrderSent(false)
+        this.setManualPosition(false)
+        this.activePosition = []
+        this.trailingStopOrderId = 0
 
         // set process inactive
         this.setStatus(false)
-
-
         this.logger.log("Done!", "reset trade process")
     }
 
