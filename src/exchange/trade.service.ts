@@ -370,7 +370,7 @@ export class TradeService {
 
     private candleStream(key: Key) {
         let candleSet: Candle[] = [];
-        if(this.candleSocketService) {
+        if(this.candleSubscription) {
             this.candleSubscription.unsubscribe()
         }
         this.candleSocketService.createSocket()
