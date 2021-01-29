@@ -496,7 +496,9 @@ export class TradeService {
         const lastStatus = this.getStatusInfo()
         this.logger.log(lastStatus, "Last Status")
         // unsub candle stream
-        this.candleSubscription.unsubscribe()
+        if(this.candleSubscription !== undefined) {
+            this.candleSubscription.unsubscribe()
+        }
         // clean up all the data from the previous cycle
         this.orderCycleService.finishOrderCycle(key)
         // unsub from order stream
