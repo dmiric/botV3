@@ -316,7 +316,7 @@ export class TradeService {
                         if (data[2][4] > 0) {
                             this.logger.log(data, "te: trade executed")
                             this.logger.log(key, "te: trade executed")
-                            this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], tradeExecuted: true, ex_id: data[2][0] });
+                            this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], tradeExecuted: true, tradeTimeStamp: data[2][5], ex_id: data[2][0] });
                         }
                     }
 
