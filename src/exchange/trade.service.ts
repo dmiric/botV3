@@ -378,6 +378,7 @@ export class TradeService {
 
     private candleStream(key: Key) {
         let candleSet: Candle[] = [];
+        this.candleSubscription.unsubscribe()
         this.candleSocketService.createSocket()
         this.logger.log(key, 'candle socket started with this key')
 
@@ -385,6 +386,7 @@ export class TradeService {
             (message: string) => {
 
                 if (!this.getStatus() || this.isStopped() || this.isStarting() || this.trailingOrderSent) {
+                    this.candleSubscription.unsubscribe()
                     return
                 }
 

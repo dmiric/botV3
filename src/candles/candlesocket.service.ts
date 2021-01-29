@@ -22,7 +22,7 @@ export class CandleSocketService {
             return getResponses(this.input$)
         }),
         share(),
-        retryWhen(errors => errors.pipe( delayWhen(() => timer(1000)) )),
+        retryWhen(errors => errors.pipe( delayWhen(() => timer(10000)) )),
         )
     }  
 
