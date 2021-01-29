@@ -370,8 +370,9 @@ export class TradeService {
 
     private candleStream(key: Key) {
         let candleSet: Candle[] = [];
-        if(this.candleSubscription) {
+        if(this.candleSubscription !== undefined) {
             this.candleSubscription.unsubscribe()
+            this.candleSubscription = undefined
         }
         this.candleSocketService.createSocket()
         this.logger.log(key, 'candle socket started with this key')
@@ -381,6 +382,7 @@ export class TradeService {
 
                 if (!this.getStatus() || this.isStopped() || this.isStarting() || this.trailingOrderSent) {
                     this.candleSubscription.unsubscribe()
+                    this.candleSubscription = undefined
                     return
                 }
 
