@@ -328,17 +328,17 @@ export class TradeService {
                         }
                         
                         // if it's LIMIT order we made
-                        if (data[2][8] == 'LIMIT' && this.orderCycleService.getBuyOrderByCid(key, data[2][11])) {
+                        if (data[2][8] == 'LIMIT' && this.orderCycleService.getBuyOrderByCid(key, data[2][3])) {
                             this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0], sentToEx: true });
                         }
 
                         // if it's LIMIT order made manualy on BFX
-                        if (data[2][8] == 'LIMIT' && !this.orderCycleService.getBuyOrderByCid(key, data[2][11])) {
+                        if (data[2][8] == 'LIMIT' && !this.orderCycleService.getBuyOrderByCid(key, data[2][3])) {
                             this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0] });
                         }
 
                         // we track only our MARKET orders making MARKET orders on BFX is not allowed while bot is active
-                        if (data[2][8] == 'MARKET' && this.orderCycleService.getBuyOrderByCid(key, data[2][11])) {
+                        if (data[2][8] == 'MARKET' && this.orderCycleService.getBuyOrderByCid(key, data[2][3])) {
                             this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0], sentToEx: true });
                         }
 
