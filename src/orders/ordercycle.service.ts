@@ -28,6 +28,7 @@ export class OrderCycleService {
     }
     
     updateBuyOrder(key: Key, cid: number, data: any): void {
+        // TODO: devide this in to updateBuyOrder and updateBuyOrderMeta
         const o = this.getBuyOrderByCid(key, cid)
         if (data.hasOwnProperty('price')) {
             o.price = data.price
@@ -40,6 +41,9 @@ export class OrderCycleService {
         }
         if (data.hasOwnProperty('tradeTimestamp')) {
             o.meta.tradeTimestamp = data.tradeTimestamp
+        }
+        if(data.hasOwnProperty('sentToEx')) {
+            o.meta.sentToEx = data.sentToEx
         }
     }
 

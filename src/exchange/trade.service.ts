@@ -226,6 +226,16 @@ export class TradeService {
                             this.logger.log(data, "reconnecting to order socket")
                             this.trade(key, true)
                         }
+
+                        const order = this.orderCycleService.getLastBuyOrder(key)
+
+                        if(!order) {
+                            return
+                        }
+
+                        if(order.meta.sentToEx === false) {
+                            this.orderSocketService.makeOrder(order)
+                        }
                     }
 
                     // ws: wallet snapshot
@@ -305,7 +315,8 @@ export class TradeService {
 
                         // executed trade has to be positive
                         // we are updating buy orders here
-                        if (data[2][4] > 0) {
+                        // :TUDU dodati provjeru za manualne ordere 
+                        if (data[2][4] > 0 && this.orderCycleService.getBuyOrderByCid(key, data[2][11])) {
                             this.logger.log(data, "te: trade executed")
                             this.logger.log(key, "te: trade executed")
                             this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], tradeExecuted: true, tradeTimeStamp: data[2][5], ex_id: data[2][0] });
@@ -317,9 +328,20 @@ export class TradeService {
                         if (data[2][3] !== key.symbol) {
                             return
                         }
+                        
+                        // if it's LIMIT order we made
+                        if (data[2][8] == 'LIMIT' && this.orderCycleService.getBuyOrderByCid(key, data[2][11])) {
+                            this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0], sentToEx: true });
+                        }
 
-                        if (data[2][8] == 'LIMIT') {
+                        // if it's LIMIT order made manualy on BFX
+                        if (data[2][8] == 'LIMIT' && !this.orderCycleService.getBuyOrderByCid(key, data[2][11])) {
                             this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0] });
+                        }
+
+                        // we track only our MARKET orders making MARKET orders on BFX is not allowed while bot is active
+                        if (data[2][8] == 'MARKET' && this.orderCycleService.getBuyOrderByCid(key, data[2][11])) {
+                            this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0], sentToEx: true });
                         }
 
                         if (data[2][8] == 'TRAILING STOP' && data[2][3] == key.symbol) {
@@ -466,7 +488,6 @@ export class TradeService {
                             }
 
                             this.orderCycleService.addBuyOrder(key, order, buyPrice)
-                            this.orderSocketService.makeOrder(order)
 
                             candleSet = []
                         }

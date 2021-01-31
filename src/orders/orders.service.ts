@@ -52,7 +52,8 @@ export class OrdersService {
                 aff_code: "uxiQm6DLx",
                 key: key,
                 id: id,
-                tradeExecuted: false
+                tradeExecuted: false,
+                sentToEx: false
                 //target: key.target // this needs to be replaced
             }
         }

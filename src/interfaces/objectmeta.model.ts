@@ -12,4 +12,5 @@ export interface ObjectMeta {
     tradeExecuted?: boolean;
     ex_id?: number;
     tradeTimestamp?: number;
+    sentToEx?: boolean;
   }
