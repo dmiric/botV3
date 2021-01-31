@@ -360,7 +360,7 @@ export class TradeService {
 
                         // if it's LIMIT order we made
                         if (data[2][8] == 'LIMIT' && newOrder) {
-                            this.orderCycleService.updateBuyOrder(key, data[2][2], { price: data[2][5] });
+                            this.orderCycleService.updateBuyOrder(key, data[2][2], { price: data[2][16] });
                         }
                     }
 
