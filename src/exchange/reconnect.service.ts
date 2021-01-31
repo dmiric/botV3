@@ -90,7 +90,7 @@ export class ReconnectService {
             symbol: apiOrder[3],
             type: apiOrder[8],
             amount: apiOrder[7],
-            price: apiOrder[17],
+            price: apiOrder[16],
             meta: {
                 id: apiOrder[31]['id'],
                 key: apiOrder[31]['key'],
