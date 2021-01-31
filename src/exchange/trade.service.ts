@@ -326,7 +326,7 @@ export class TradeService {
                         if (data[2][3] !== key.symbol) {
                             return
                         }
-                        
+
                         const newOrder = this.orderCycleService.getBuyOrderByCid(key, data[2][2])
 
                         // if it's LIMIT order we made
@@ -347,6 +347,20 @@ export class TradeService {
                         if (data[2][8] == 'TRAILING STOP' && data[2][3] == key.symbol) {
                             this.setTrailingOrderSent(true)
                             this.trailingStopOrderId = data[2][0]
+                        }
+                    }
+
+                    // ou: order update
+                    if (data[1] == 'ou') {
+                        if (data[2][3] !== key.symbol) {
+                            return
+                        }
+
+                        const newOrder = this.orderCycleService.getBuyOrderByCid(key, data[2][2])
+
+                        // if it's LIMIT order we made
+                        if (data[2][8] == 'LIMIT' && newOrder) {
+                            this.orderCycleService.updateBuyOrder(key, data[2][2], { price: data[2][5] });
                         }
                     }
 
