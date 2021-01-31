@@ -197,7 +197,7 @@ export class TradeService {
                         this.logger.log(data, "order socket")
                     }
                 } else {
-                    if (data[1] !== 'bu' && data[1] !== 'wu') {
+                    if (data[1] !== 'bu') {
                         this.logger.log(data, "order socket")
                     }
                 }
@@ -208,7 +208,6 @@ export class TradeService {
                     // and we send a message to start the stream
                     this.orderSocketService.auth()
                 } else {
-                    // hb: hearth beat
                     if (data.event) {
                         return;
                     }
@@ -226,16 +225,6 @@ export class TradeService {
                             this.logger.log(data, "reconnecting to order socket")
                             this.trade(key, true)
                         }
-
-                        const order = this.orderCycleService.getLastBuyOrder(key)
-
-                        if(!order) {
-                            return
-                        }
-
-                        if(order.meta.sentToEx === false) {
-                            this.orderSocketService.makeOrder(order)
-                        }
                     }
 
                     // ws: wallet snapshot
@@ -250,6 +239,15 @@ export class TradeService {
                     // wu: wallet update
                     if (data[1] == 'wu') {
                         // make orders that are not executed
+                        const order = this.orderCycleService.getLastBuyOrder(key)
+
+                        if(!order) {
+                            return
+                        }
+
+                        if(order.meta.sentToEx === false) {
+                            this.orderSocketService.makeOrder(order)
+                        }
                     }
 
                     // ps: position snapshot
