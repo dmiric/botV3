@@ -317,7 +317,7 @@ export class TradeService {
                         const order = this.orderCycleService.getBuyOrderByCid(key, data[2][11]) 
                         const exAmount = data[2][4]          
                                   
-                        if (exAmount > 0 && order) {                            
+                        if (exAmount > 0 && order && data[2][11] == order.cid) {                            
                             let tradeExecuted = false    
                             if(exAmount + order.meta.exAmount >= order.amount) {
                                 tradeExecuted = true
@@ -497,9 +497,10 @@ export class TradeService {
                     if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId(key)) {
 
                         const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet, key)
+                        const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
                         //const orderId = 101;
                         // await new Promise(r => setTimeout(r, 500));
-                        if (orderId && this.orderSocketService.getSocketReadyState()) {
+                        if (orderId && this.orderSocketService.getSocketReadyState() && orderId > lastBuyOrder.meta.id) {
                             this.logger.log(data, 'candle socket')
                             this.logger.log(key, 'candle socket key: 459')
                             const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
