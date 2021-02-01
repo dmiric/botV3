@@ -53,7 +53,8 @@ export class OrdersService {
                 key: key,
                 id: id,
                 tradeExecuted: false,
-                sentToEx: false
+                sentToEx: false,
+                exAmount: 0
                 //target: key.target // this needs to be replaced
             }
         }

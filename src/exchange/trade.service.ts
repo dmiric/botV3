@@ -313,11 +313,20 @@ export class TradeService {
 
                         // executed trade has to be positive
                         // we are updating buy orders here
-                        // :TUDU dodati provjeru za manualne ordere 
-                        if (data[2][4] > 0 && this.orderCycleService.getBuyOrderByCid(key, data[2][11])) {
+                        // :TUDU dodati provjeru za manualne ordere
+                        const order = this.orderCycleService.getBuyOrderByCid(key, data[2][11]) 
+                        const exAmount = data[2][4]          
+                                  
+                        if (exAmount > 0 && order) {                            
+                            let tradeExecuted = false    
+                            if(exAmount + order.meta.exAmount >= order.amount) {
+                                tradeExecuted = true
+                            }
+                            const exAmountUpdate = exAmount + order.meta.exAmount
+
                             this.logger.log(data, "te: trade executed")
                             this.logger.log(key, "te: trade executed")
-                            this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], tradeExecuted: true, tradeTimeStamp: data[2][5], ex_id: data[2][0] });
+                            this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], exAmount: exAmountUpdate, tradeExecuted: tradeExecuted, tradeTimeStamp: data[2][5], ex_id: data[2][0] });
                         }
                     }
 

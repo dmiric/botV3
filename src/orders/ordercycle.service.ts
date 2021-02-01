@@ -18,7 +18,10 @@ export class OrderCycleService {
 
     addBuyOrder(key: Key, order: Order, price: number): void {
         const o = { ...order }
-        o.price = price
+        
+        if(order.meta.id > 101) {
+            o.price = price
+        }
 
         if (!this.buyOrders.hasOwnProperty(key.id) ) {
             this.buyOrders[key.id] = []
@@ -44,6 +47,9 @@ export class OrderCycleService {
         }
         if(data.hasOwnProperty('sentToEx')) {
             o.meta.sentToEx = data.sentToEx
+        }
+        if(data.hasOwnProperty('exAmount')) {
+            o.meta.exAmount = data.exAmount
         }
     }
 
