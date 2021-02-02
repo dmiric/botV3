@@ -24,6 +24,8 @@ export class OrderSocketService {
         //this.auth()
     }
 
+    private lastOrderCid = 0
+
     public createSocket(): void {
         this.socket$ = makeWebSocketObservable('wss://api.bitfinex.com/ws/2')
         this.messages$ = this.socket$.pipe(
@@ -76,6 +78,13 @@ export class OrderSocketService {
     }
 
     public makeOrder(order: Order): void{
+        // make sure we prevent any order duplication
+        if(this.lastOrderCid == order.cid) {
+            return
+        }
+        this.lastOrderCid = order.cid
+
+        // make order
         const apiOrder = this.prepareApiOrder(order)
         const inputPayload = [0, 'on', null, apiOrder] // Note how the payload is constructed here. It consists of an array starting with the CHANNEL_ID, TYPE, and PLACEHOLDER and is followed by the inputDetails object.
         console.log(inputPayload)

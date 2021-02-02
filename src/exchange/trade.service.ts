@@ -42,6 +42,9 @@ export class TradeService {
     private trailingOrderSent = false;
     private trailingStopOrderId = 0;
 
+    private lastBuyOrderId = 0;
+    private lastCandleCount = 0;
+
     constructor(
         private parseCandlesService: ParseCandlesService,
         private orderCycleService: OrderCycleService,
@@ -214,7 +217,7 @@ export class TradeService {
 
                         // hack to reconnect if position update is late 1 minute
                         const secDelay = Math.floor((Date.now() - this.lastPositionUpdateTime) / 1000)
-                        if (secDelay > 60) {
+                        if (secDelay > 60 && this.lastBuyOrderId > 0) {
                             this.orderSocketService.setReadyState(false)
                             // unsub from order stream
                             this.orderSubscription.unsubscribe()
@@ -324,6 +327,28 @@ export class TradeService {
                             this.logger.log(key, "te: trade executed")
                             this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], exAmount: exAmountUpdate, tradeExecuted: tradeExecuted, tradeTimeStamp: data[2][5], ex_id: data[2][0] });
                         }
+                    }
+
+                    // on: order new
+                    if (data[1] == 'n') {
+                        const nOrder = data[2][4]
+
+                        if (nOrder[3] !== key.symbol) {
+                            return
+                        }
+
+                        const newOrder = this.orderCycleService.getBuyOrderByCid(key, nOrder[2])
+
+                        // if it's LIMIT order we made
+                        if (nOrder[8] == 'LIMIT' && newOrder) {
+                            this.orderCycleService.updateBuyOrder(key, nOrder[2], { ex_id: nOrder[0], sentToEx: true });
+                        }
+
+                        // we track only our MARKET orders making MARKET orders on BFX is not allowed while bot is active
+                        if (nOrder[8] == 'MARKET' && newOrder) {
+                            this.orderCycleService.updateBuyOrder(key, nOrder[2], { ex_id: nOrder[0], sentToEx: true });
+                        }
+
                     }
 
                     // on: order new
@@ -447,12 +472,15 @@ export class TradeService {
                         return
                     }
 
-                    // debug
-                    if (candleSet.length > 0 && candleSet.length < 3) {
-                        // this.logger.log(candleSet, 'candle set')
+                    candleSet = this.parseCandlesService.handleCandleStream(data, key, candleSet)
+
+                    // if we don't have one more candle at this point no need to continue
+                    if (candleSet && candleSet.length > this.lastCandleCount) {
+                        this.lastCandleCount = candleSet.length
+                    } else {
+                        return
                     }
 
-                    candleSet = this.parseCandlesService.handleCandleStream(data, key, candleSet)
                     const currentCandle: Candle = candleSet[candleSet.length - 1]
 
                     // this is a questionable hack to sort out missing candles
@@ -468,39 +496,40 @@ export class TradeService {
                     if (candleSet.length > 200) {
                         const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
                         if (lastBuyOrder) {
-                            //this.logger.log(lastBuyOrder, 'lastBuyOrder candles > 200')
+                            this.logger.log(lastBuyOrder, 'lastBuyOrder candles > 200')
                             if (lastBuyOrder.meta.tradeExecuted) {
                                 const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
-                                //this.logger.log([tradeTimestamp, candleSet[candleSet.length - 1].mts], 'tradeTimeStamp : lastCandle mts')
+                                this.logger.log([tradeTimestamp, candleSet[candleSet.length - 1].mts], 'tradeTimeStamp : lastCandle mts')
                                 if (tradeTimestamp > candleSet[candleSet.length - 1].mts) {
                                     candleSet = this.behaviorService.getCandleStack(candleSet, tradeTimestamp)
+                                    this.lastCandleCount = candleSet.length
                                     this.logger.log(candleSet, 'trim candle set')
                                 }
                             } else {
                                 if (lastBuyOrder.meta.id > 101) {
                                     candleSet = []
+                                    this.lastCandleCount = 0
                                     this.logger.log(candleSet, 'full reset candle set 1')
                                 }
                             }
 
-                        } else {
+                        } 
+                        /*
+                        else {
                             candleSet = []
+                            this.lastCandleCount = 0
                             this.logger.log(key, 'full reset candle set 2 - key')
                             this.logger.log(candleSet, 'full reset candle set 2')
                         }
+                        */
                     }
 
                     if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId(key)) {
-
                         const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet, key)
 
                         //const orderId = 101;
                         // await new Promise(r => setTimeout(r, 500));
-                        if (orderId && this.orderSocketService.getSocketReadyState()) {
-                            const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
-                            if (lastBuyOrder && orderId === lastBuyOrder.meta.id) {
-                                return
-                            }
+                        if (orderId && this.lastBuyOrderId != orderId && this.orderSocketService.getSocketReadyState()) {
                             this.logger.log(data, 'candle socket')
                             this.logger.log(key, 'candle socket key: 459')
                             const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
@@ -512,8 +541,10 @@ export class TradeService {
                             }
 
                             this.orderCycleService.addBuyOrder(key, order, buyPrice)
+                            this.lastBuyOrderId = orderId
 
                             candleSet = []
+                            this.lastCandleCount = 0
                         }
                     }
 
@@ -556,6 +587,8 @@ export class TradeService {
         this.setManualPosition(false)
         this.activePosition = []
         this.trailingStopOrderId = 0
+        this.lastCandleCount = 0
+        this.lastBuyOrderId = 0
 
         // set process inactive
         this.setStatus(false)
