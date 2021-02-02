@@ -468,10 +468,10 @@ export class TradeService {
                     if (candleSet.length > 200) {
                         const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
                         if (lastBuyOrder) {
-                            this.logger.log(lastBuyOrder, 'lastBuyOrder candles > 200')
+                            //this.logger.log(lastBuyOrder, 'lastBuyOrder candles > 200')
                             if (lastBuyOrder.meta.tradeExecuted) {
                                 const tradeTimestamp = lastBuyOrder.meta.tradeTimestamp
-                                this.logger.log([tradeTimestamp, candleSet[candleSet.length - 1].mts], 'tradeTimeStamp : lastCandle mts')
+                                //this.logger.log([tradeTimestamp, candleSet[candleSet.length - 1].mts], 'tradeTimeStamp : lastCandle mts')
                                 if (tradeTimestamp > candleSet[candleSet.length - 1].mts) {
                                     candleSet = this.behaviorService.getCandleStack(candleSet, tradeTimestamp)
                                     this.logger.log(candleSet, 'trim candle set')
@@ -498,21 +498,22 @@ export class TradeService {
                         // await new Promise(r => setTimeout(r, 500));
                         if (orderId && this.orderSocketService.getSocketReadyState()) {
                             const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
-                            if (lastBuyOrder && orderId > lastBuyOrder.meta.id) {
-                                this.logger.log(data, 'candle socket')
-                                this.logger.log(key, 'candle socket key: 459')
-                                const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
-                                this.logger.log(key, 'candle socket key: 461')
-                                let buyPrice = 0
-                                if (order.meta.id != 101) {
-                                    buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
-                                    order['price'] = buyPrice
-                                }
-
-                                this.orderCycleService.addBuyOrder(key, order, buyPrice)
-
-                                candleSet = []
+                            if (lastBuyOrder && orderId === lastBuyOrder.meta.id) {
+                                return
                             }
+                            this.logger.log(data, 'candle socket')
+                            this.logger.log(key, 'candle socket key: 459')
+                            const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
+                            this.logger.log(key, 'candle socket key: 461')
+                            let buyPrice = 0
+                            if (order.meta.id != 101) {
+                                buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
+                                order['price'] = buyPrice
+                            }
+
+                            this.orderCycleService.addBuyOrder(key, order, buyPrice)
+
+                            candleSet = []
                         }
                     }
 
