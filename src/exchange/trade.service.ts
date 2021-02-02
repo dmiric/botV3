@@ -5,9 +5,7 @@ import { Key } from '../interfaces/key.model'
 import { ParseCandlesService } from '../candles/parsecandles.service'
 
 import { OrdersService } from '../orders/orders.service';
-import { KeyService } from '../candles/key.service';
 import { OrderCycleService } from '../orders/ordercycle.service';
-import { CandleUtilService } from '../candles/candleutil.service';
 import { BencBehaviourService } from '../behaviour/bencbehaviour.service'
 import { CandleSocketService } from '../candles/candlesocket.service'
 import { Subscription } from 'rxjs'
@@ -49,8 +47,6 @@ export class TradeService {
         private orderCycleService: OrderCycleService,
         private behaviorService: BencBehaviourService,
         private ordersService: OrdersService,
-        private candleUtilService: CandleUtilService,
-        private keyService: KeyService,
         private candleSocketService: CandleSocketService,
         private orderSocketService: OrderSocketService,
         private restService: RestService,
@@ -241,11 +237,11 @@ export class TradeService {
                         // make orders that are not executed
                         const order = this.orderCycleService.getLastBuyOrder(key)
 
-                        if(!order) {
+                        if (!order) {
                             return
                         }
 
-                        if(order.meta.sentToEx === false) {
+                        if (order.meta.sentToEx === false) {
                             this.orderSocketService.makeOrder(order)
                         }
                     }
@@ -314,12 +310,12 @@ export class TradeService {
                         // executed trade has to be positive
                         // we are updating buy orders here
                         // :TUDU dodati provjeru za manualne ordere
-                        const order = this.orderCycleService.getBuyOrderByCid(key, data[2][11]) 
-                        const exAmount = data[2][4]          
-                                  
-                        if (exAmount > 0 && order && data[2][11] == order.cid) {                            
-                            let tradeExecuted = false    
-                            if(exAmount + order.meta.exAmount >= order.amount) {
+                        const order = this.orderCycleService.getBuyOrderByCid(key, data[2][11])
+                        const exAmount = data[2][4]
+
+                        if (exAmount > 0 && order && data[2][11] == order.cid) {
+                            let tradeExecuted = false
+                            if (exAmount + order.meta.exAmount >= order.amount) {
                                 tradeExecuted = true
                             }
                             const exAmountUpdate = exAmount + order.meta.exAmount
@@ -415,7 +411,7 @@ export class TradeService {
 
     private candleStream(key: Key) {
         let candleSet: Candle[] = [];
-        if(this.candleSubscription !== undefined) {
+        if (this.candleSubscription !== undefined) {
             this.candleSubscription.unsubscribe()
             this.candleSubscription = undefined
         }
@@ -497,23 +493,26 @@ export class TradeService {
                     if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId(key)) {
 
                         const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet, key)
-                        const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
+
                         //const orderId = 101;
                         // await new Promise(r => setTimeout(r, 500));
-                        if (orderId && this.orderSocketService.getSocketReadyState() && orderId > lastBuyOrder.meta.id) {
-                            this.logger.log(data, 'candle socket')
-                            this.logger.log(key, 'candle socket key: 459')
-                            const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
-                            this.logger.log(key, 'candle socket key: 461')
-                            let buyPrice = 0
-                            if (order.meta.id != 101) {
-                                buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
-                                order['price'] = buyPrice
+                        if (orderId && this.orderSocketService.getSocketReadyState()) {
+                            const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
+                            if (lastBuyOrder && orderId > lastBuyOrder.meta.id) {
+                                this.logger.log(data, 'candle socket')
+                                this.logger.log(key, 'candle socket key: 459')
+                                const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
+                                this.logger.log(key, 'candle socket key: 461')
+                                let buyPrice = 0
+                                if (order.meta.id != 101) {
+                                    buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
+                                    order['price'] = buyPrice
+                                }
+
+                                this.orderCycleService.addBuyOrder(key, order, buyPrice)
+
+                                candleSet = []
                             }
-
-                            this.orderCycleService.addBuyOrder(key, order, buyPrice)
-
-                            candleSet = []
                         }
                     }
 
@@ -541,7 +540,7 @@ export class TradeService {
         const lastStatus = this.getStatusInfo()
         this.logger.log(lastStatus, "Last Status")
         // unsub candle stream
-        if(this.candleSubscription !== undefined) {
+        if (this.candleSubscription !== undefined) {
             this.candleSubscription.unsubscribe()
         }
         // clean up all the data from the previous cycle
