@@ -492,14 +492,18 @@ export class TradeService {
 
                     candleSet = this.parseCandlesService.handleCandleStream(data, key, candleSet)
 
+                    const currentCandle: Candle = candleSet[candleSet.length - 1]
+
                     // if we don't have one more candle at this point no need to continue
                     if (candleSet && candleSet.length > this.lastCandleCount) {
                         this.lastCandleCount = candleSet.length
+                        this.logger.log(this.lastCandleCount + ":" + candleSet.length, 'candle count')
+                        this.logger.log(currentCandle, 'current candle')
                     } else {
                         return
                     }
 
-                    const currentCandle: Candle = candleSet[candleSet.length - 1]
+                    
 
                     // this is a questionable hack to sort out missing candles
                     if (!currentCandle) {
