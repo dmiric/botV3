@@ -24,7 +24,7 @@ export class ReconnectService {
 
         for (const pos of positions) {
             if (pos[1] === 'ACTIVE' && (pos[0] == 'tBTCUSD' || pos[0] == 'tTESTBTC:TESTUSD')) {
-
+                this.logger.log(pos)
                 // Last buy order from history
                 const lastOrderId = pos[19]['order_id']
                 const lastHistBuyOrders = await this.restService.fetchOrders(pos[0], { id: [lastOrderId] }, true)
@@ -34,7 +34,7 @@ export class ReconnectService {
                 
                 this.logger.log(lastHistBuyOrders)
                 
-                if (lastHistBuyOrders) {
+                if (Object.keys(lastHistBuyOrders).length > 0 && lastHistBuyOrders.constructor === Object) {
                     if(typeof lastHistBuyOrders[0][31] === 'object' && lastHistBuyOrders[0][31] !== null && lastHistBuyOrders[0][31].hasOwnProperty('id')) {
                     const lastHistBuyOrder = this.formatOrder(lastHistBuyOrders[0], true)
                     this.logger.log(lastHistBuyOrder, "Last History Buy Order")
