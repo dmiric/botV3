@@ -2,6 +2,7 @@ import { Injectable, Inject, Logger, LoggerService } from '@nestjs/common'
 import { Candle } from '../interfaces/candle.model'
 
 import { Key } from '../interfaces/key.model'
+import { TrailingStop } from '../interfaces/trailingstop.model'
 import { ParseCandlesService } from '../candles/parsecandles.service'
 
 import { OrdersService } from '../orders/orders.service';
@@ -41,6 +42,7 @@ export class TradeService {
     // trailing order
     private trailingOrderSent = false;
     private trailingStopOrderId = 0;
+    private manualTrailingStop: TrailingStop
 
     private lastBuyOrderId = 0;
     private lastCandleCount = 0;
@@ -79,6 +81,7 @@ export class TradeService {
         status['trailingStopOrder'] = this.trailingOrderSent
         status['trailingStopOrderId'] = this.trailingStopOrderId
         status['lastSignal'] = this.lastSignal
+        status['lastManualTrailingStop'] = this.manualTrailingStop ? this.manualTrailingStop : ''
         status['buyOrders'] = buyOrders
         status['lastSignalTime'] = this.lastSignalTime
         status['activePosition'] = this.activePosition
@@ -116,6 +119,11 @@ export class TradeService {
 
     getManualPosition(): boolean {
         return this.manualPosition;
+    }
+
+    setManualTrailingStop(trail: TrailingStop): void {
+        this.manualTrailingStop = trail
+        this.logger.log(trail, "new manual trailing stop set")
     }
 
     setLastSignal(key: Key): void {
@@ -276,8 +284,17 @@ export class TradeService {
                                 return
                             }
 
-                            if (data[2][7] > key.trailingProfit) {
-                                const priceTrailing = this.currentPrice * (key.trailingDistance / 100)
+                            let trailingProfit = key.trailingProfit;
+                            let trailingDistance = key.trailingDistance;
+                            if (this.manualTrailingStop && Object.keys(this.manualTrailingStop).length > 0 && this.manualTrailingStop.constructor === Object) {
+                                if (this.manualTrailingStop.hasOwnProperty('trailingProfit') && this.manualTrailingStop.hasOwnProperty('trailingDistance')) {
+                                    trailingProfit = this.manualTrailingStop.trailingProfit
+                                    trailingDistance = this.manualTrailingStop.trailingDistance
+                                }
+                            }
+
+                            if (data[2][7] > trailingProfit) {
+                                const priceTrailing = this.currentPrice * (trailingDistance / 100)
 
                                 // cancel all buy orders for the symbol
                                 // const activeOrders = await this.restService.fetchOrders(key.symbol)
@@ -413,6 +430,7 @@ export class TradeService {
                         if (data[2][0] == this.trailingStopOrderId) {
                             this.trailingOrderSent = false;
                             this.trailingStopOrderId = 0;
+                            this.manualTrailingStop = undefined;
                         }
                     }
                 }
@@ -513,7 +531,7 @@ export class TradeService {
                                 }
                             }
 
-                        } 
+                        }
                         /*
                         else {
                             candleSet = []
@@ -581,13 +599,18 @@ export class TradeService {
         this.orderSubscription.unsubscribe()
         // reset active position
         this.currentPrice = 0
+
         this.activePositionMaxPerc = 0
         this.lastPositionUpdateTime = 0
-        this.setTrailingOrderSent(false)
         this.setManualPosition(false)
         this.activePosition = []
+
+        this.setTrailingOrderSent(false)
         this.trailingStopOrderId = 0
+        this.manualTrailingStop = undefined;
+
         this.lastCandleCount = 0
+
         this.lastBuyOrderId = 0
 
         // set process inactive

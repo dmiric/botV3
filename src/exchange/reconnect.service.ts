@@ -34,7 +34,7 @@ export class ReconnectService {
                 
                 this.logger.log(lastHistBuyOrders)
                 
-                if (Object.keys(lastHistBuyOrders).length > 0 && lastHistBuyOrders.constructor === Object) {
+                if (lastHistBuyOrders && lastHistBuyOrders.length > 0) {
                     if(typeof lastHistBuyOrders[0][31] === 'object' && lastHistBuyOrders[0][31] !== null && lastHistBuyOrders[0][31].hasOwnProperty('id')) {
                     const lastHistBuyOrder = this.formatOrder(lastHistBuyOrders[0], true)
                     this.logger.log(lastHistBuyOrder, "Last History Buy Order")
@@ -67,10 +67,10 @@ export class ReconnectService {
 
                     this.logger.log(restartOrder, 'restart order')
                     this.tradeService.restartTrade(key, restartOrder)
-                    } else { 
-                        // the last order was not created by this bot
-                        this.setManualPosition = true
                     }
+                } else { 
+                    // the last order was not created by this bot
+                    this.setManualPosition = true
                 }
             }
         }
