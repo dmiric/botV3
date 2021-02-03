@@ -96,7 +96,8 @@ export class ReconnectService {
                 key: apiOrder[31]['key'],
                 aff_code: apiOrder['aff_code'],
                 tradeExecuted: tradeExecuted,
-                tradeTimestamp: apiOrder[5]
+                tradeTimestamp: apiOrder[5],
+                sentToEx: true
             }
         }
 
