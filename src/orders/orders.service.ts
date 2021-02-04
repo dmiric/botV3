@@ -43,11 +43,12 @@ export class OrdersService {
     }
 
     createOrder(key: Key, id: number, price: number): Order {
+        const amount = this.round(this.calculateOrderAmount(key.startBalance, id, price), 4)
         return {
             cid: Date.now(),
             type: "LIMIT",
             symbol: key.symbol,
-            amount: this.calculateOrderAmount(key.startBalance, id, price),
+            amount: amount,
             meta: {
                 aff_code: "uxiQm6DLx",
                 key: key,
@@ -62,6 +63,10 @@ export class OrdersService {
 
     calculateOrderAmount(startBalance: number, id: number, price: number): number {
         return (startBalance * this.availableForPosition[id] / 100) / price
+    }
+
+    private round(num: number, dec = 10): number {
+        return parseFloat(num.toFixed(dec));
     }
 
 }
