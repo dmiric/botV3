@@ -350,7 +350,7 @@ export class TradeService {
                     if (data[1] == 'n') {
                         const nOrder = data[2][4]
 
-                        if (nOrder[3] !== key.symbol) {
+                        if (nOrder === null || nOrder[3] !== key.symbol) {
                             return
                         }
 
