@@ -225,7 +225,7 @@ export class TradeService {
 
                         // hack to reconnect if position update is late 1 minute
                         const secDelay = Math.floor((Date.now() - this.lastPositionUpdateTime) / 1000)
-                        if (secDelay > 60 && this.lastBuyOrderId > 0) {
+                        if (secDelay > 60) { //&& this.lastBuyOrderId > 0) {
                             this.orderSocketService.setReadyState(false)
                             // unsub from order stream
                             this.orderSubscription.unsubscribe()
