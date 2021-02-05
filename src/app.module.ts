@@ -1,3 +1,4 @@
+import { PositionModule } from './position/position.module';
 import { StopController } from './input/stop.controller';
 import { ReconnectService } from './exchange/reconnect.service';
 import { StatusController } from './input/status.controller';
@@ -21,10 +22,18 @@ import { CandlesModule } from './candles/candles.module';
 import { Module, Logger } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 
 @Module({
   imports: [
+    PositionModule,
+    TypeOrmModule.forRoot({
+      type: 'sqlite',
+      database: 'db',
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      synchronize: true, // this needs to be removed in production
+    }),
     ExchangeModule,
     LogModule,
     BehaviourModule,

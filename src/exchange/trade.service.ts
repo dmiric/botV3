@@ -178,6 +178,14 @@ export class TradeService {
         this.trailingOrderSent = trailing
     }
 
+    private reConnect(key: Key, data) {
+        this.orderSocketService.setReadyState(false)
+        // unsub from order stream
+        this.orderSubscription.unsubscribe()
+        this.logger.log(data, "reconnecting to order socket")
+        this.trade(key, true)
+    }
+
     public trade(key: Key, reconnect = false): void {
         this.setLastSignal(key)
         this.lastPositionUpdateTime = 0
@@ -221,16 +229,13 @@ export class TradeService {
 
                     // hb: hearth beat
                     if (data[1] == 'hb') {
-                        this.orderSocketService.requestReqcalc(key)
+                        // request pu
+                        this.orderSocketService.requestReqcalc()
 
-                        // hack to reconnect if position update is late 1 minute
+                        // hack to reconnect if position update is late 1 minute                        
                         const secDelay = Math.floor((Date.now() - this.lastPositionUpdateTime) / 1000)
                         if (secDelay > 60) { //&& this.lastBuyOrderId > 0) {
-                            this.orderSocketService.setReadyState(false)
-                            // unsub from order stream
-                            this.orderSubscription.unsubscribe()
-                            this.logger.log(data, "reconnecting to order socket")
-                            this.trade(key, true)
+                            this.reConnect(key, data)
                         }
                     }
 
