@@ -21,6 +21,7 @@ import { CandlesModule } from './candles/candles.module';
 import { Module, Logger } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ClosedTradesController } from './input/closedtrades.controller';
 
 
 @Module({
@@ -35,7 +36,7 @@ import { AppService } from './app.service';
   controllers: [
     StopController,
     StatusController,
-    HookController, AppController],
+    HookController, AppController, ClosedTradesController],
   providers: [
     ReconnectService,
     Logger,

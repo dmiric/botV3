@@ -55,7 +55,8 @@ export class OrdersService {
                 id: id,
                 tradeExecuted: false,
                 sentToEx: false,
-                exAmount: 0
+                exAmount: 0,
+                type: 'bot',
                 //target: key.target // this needs to be replaced
             }
         }

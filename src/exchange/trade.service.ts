@@ -14,6 +14,7 @@ import { Order } from '../interfaces/order.model'
 import { normalClosureMessage } from 'rxjs-websockets';
 import { OrderSocketService } from '../orders/ordersocket.service'
 import { RestService } from './rest.service';
+import { last } from 'rxjs/operators'
 
 @Injectable()
 export class TradeService {
@@ -33,6 +34,7 @@ export class TradeService {
     private currentPrice = 0;
     private activePositionMaxPerc = 0;
     private lastPositionUpdateTime = 0;
+    private closedTrades = []
 
     // signal
     private lastSignal: Key;
@@ -59,6 +61,10 @@ export class TradeService {
     ) { }
 
     getStatusInfo(): any {
+        if(!this.lastLongKey) {
+            return {}
+        }
+
         const behaviourInfo = this.behaviorService.getBehaviourInfo()
         let lastBuyOrderFormated = {}
         let buyOrders = {}
@@ -69,6 +75,8 @@ export class TradeService {
                 lastBuyOrderFormated = { 'type': lastBuyOrder.type, 'amount': lastBuyOrder.amount, 'price': lastBuyOrder.price, ...lastBuyOrder.meta }
             }
         }
+
+        const customBuyOrders = this.orderCycleService.getCustomBuyOrders(this.lastLongKey)
 
         const status = {}
         status['tradeStatus'] = this.tradeStatus
@@ -81,8 +89,9 @@ export class TradeService {
         status['trailingStopOrder'] = this.trailingOrderSent
         status['trailingStopOrderId'] = this.trailingStopOrderId
         status['lastSignal'] = this.lastSignal
-        status['lastManualTrailingStop'] = this.manualTrailingStop ? this.manualTrailingStop : ''
+        status['lastManualTrailingStop'] = this.manualTrailingStop ? this.manualTrailingStop : null
         status['buyOrders'] = buyOrders
+        status['customBuyOrders'] = customBuyOrders ? customBuyOrders : null
         status['lastSignalTime'] = this.lastSignalTime
         status['activePosition'] = this.activePosition
         status['behaviourInfo'] = {
@@ -90,19 +99,23 @@ export class TradeService {
             'maxReach': behaviourInfo['maxReach'],
             'nextOrder': behaviourInfo['nextOrder']
         }
-        return status;
+        return status
+    }
+
+    getClosedTrades(): any {
+        return this.closedTrades
     }
 
     getStatus(): boolean {
-        return this.tradeStatus;
+        return this.tradeStatus
     }
 
     setStatus(status: boolean): boolean {
-        return this.tradeStatus = status;
+        return this.tradeStatus = status
     }
 
     setStarting(status: boolean): boolean {
-        return this.starting = status;
+        return this.starting = status
     }
 
     isStarting(): boolean {
@@ -114,11 +127,11 @@ export class TradeService {
     }
 
     setManualPosition(status: boolean): boolean {
-        return this.manualPosition = status;
+        return this.manualPosition = status
     }
 
     getManualPosition(): boolean {
-        return this.manualPosition;
+        return this.manualPosition
     }
 
     setManualTrailingStop(trail: TrailingStop): void {
@@ -167,6 +180,7 @@ export class TradeService {
     }
 
     restartTrade(key: Key, lastBuyOrder: Order): void {
+        this.orderCycleService.init(key)
         // set lastBuyOrder in OrderCycle
         this.orderCycleService.addBuyOrder(key, lastBuyOrder, lastBuyOrder.price)
         // use key to start the trade again
@@ -183,7 +197,7 @@ export class TradeService {
         this.lastPositionUpdateTime = 0
 
         this.tradeStatus = true
-        this.orderCycleService.setCurrentTimeFrame(key)
+        this.orderCycleService.init(key)
 
         this.orderSocketService.createSocket()
 
@@ -221,7 +235,7 @@ export class TradeService {
 
                     // hb: hearth beat
                     if (data[1] == 'hb') {
-                        this.orderSocketService.requestReqcalc(key)
+                        this.orderSocketService.requestReqcalc()
 
                         // hack to reconnect if position update is late 1 minute
                         const secDelay = Math.floor((Date.now() - this.lastPositionUpdateTime) / 1000)
@@ -321,19 +335,19 @@ export class TradeService {
 
                     // te: trade executed
                     if (data[1] == 'te') {
-                        //message: [0,"te",[563936681,"tTESTBTC:TESTUSD",1609889746511,55970331526,0.0032,33927,"MARKET",33903,-1,null,null,1609889681451]]
+                        const teOrder = data[2]
+                        const order = this.orderCycleService.getBuyOrderByCid(key, teOrder[11])
 
-                        if (data[2][1] !== key.symbol) {
+                        if (!order || order.symbol !== key.symbol) {
                             return
                         }
 
                         // executed trade has to be positive
                         // we are updating buy orders here
                         // :TUDU dodati provjeru za manualne ordere
-                        const order = this.orderCycleService.getBuyOrderByCid(key, data[2][11])
-                        const exAmount = data[2][4]
+                        const exAmount = teOrder[4]
 
-                        if (exAmount > 0 && order && data[2][11] == order.cid) {
+                        if (exAmount > 0 && order && teOrder[11] == order.cid) {
                             let tradeExecuted = false
                             if (exAmount + order.meta.exAmount >= order.amount) {
                                 tradeExecuted = true
@@ -342,7 +356,7 @@ export class TradeService {
 
                             this.logger.log(data, "te: trade executed")
                             this.logger.log(key, "te: trade executed")
-                            this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], exAmount: exAmountUpdate, tradeExecuted: tradeExecuted, tradeTimeStamp: data[2][5], ex_id: data[2][0] });
+                            this.orderCycleService.updateBuyOrder(key, teOrder[11], { price: teOrder[5], exAmount: exAmountUpdate, tradeExecuted: tradeExecuted, tradeTimeStamp: teOrder[5], ex_id: teOrder[0] });
                         }
                     }
 
@@ -370,6 +384,7 @@ export class TradeService {
 
                     // on: order new
                     if (data[1] == 'on') {
+                        
                         if (data[2][3] !== key.symbol) {
                             return
                         }
@@ -383,7 +398,9 @@ export class TradeService {
 
                         // if it's LIMIT order made manualy on BFX
                         if (data[2][8] == 'LIMIT' && !newOrder) {
-                            this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0] });
+                            const order = this.orderCycleService.addCustomBuyOrder(key, data[2])
+                            this.orderSocketService.cancelOrder(data[2][0])
+                            this.orderSocketService.makeOrder(order)
                         }
 
                         // we track only our MARKET orders making MARKET orders on BFX is not allowed while bot is active
@@ -417,6 +434,26 @@ export class TradeService {
                             if (order[8] == 'TRAILING STOP' && order[3] == key.symbol) {
                                 this.setTrailingOrderSent(true)
                                 this.trailingStopOrderId = order[0]
+                            }
+                            
+                            // cancel orphan order
+                            if (order[8] == 'LIMIT' && order[3] == key.symbol && order[31] !== null && 
+                                order[31].hasOwnProperty('key') && order[31]['key']['id'] != key.id) {
+                                this.orderSocketService.cancelOrder(order[0])
+                                this.logger.log(order, "os: orphan order canceled")
+                            }
+
+                            if (order[8] == 'LIMIT' && order[3] == key.symbol && order[31] === null) {
+                                const fOrder = this.orderCycleService.addCustomBuyOrder(key, order)
+                                this.orderSocketService.cancelOrder(order[0])
+                                this.orderSocketService.makeOrder(fOrder)
+                            }
+
+                            // add already established custom orders
+                            if (order[8] == 'LIMIT' && order[3] == key.symbol && order[31] !== null && 
+                                order[31].hasOwnProperty('key') && order[31]['key']['id'] === key.id && order[31]['type'] == 'custom') {
+                                this.orderCycleService.addCustomBuyOrder(key, order)
+                                this.orderCycleService.updateBuyOrder(key, order[2], { sentToEx: true });
                             }
                         }
                     }
@@ -591,8 +628,11 @@ export class TradeService {
 
     resetTradeProcess(key: Key): void {
         this.logger.log("Resetting...", "reset trade process")
+        
         const lastStatus = this.getStatusInfo()
+        this.closedTrades.push({...lastStatus})
         this.logger.log(lastStatus, "Last Status")
+
         // unsub candle stream
         if (this.candleSubscription !== undefined) {
             this.candleSubscription.unsubscribe()

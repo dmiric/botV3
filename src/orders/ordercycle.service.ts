@@ -6,6 +6,7 @@ import { Key } from '../interfaces/key.model'
 export class OrderCycleService {
 
     private buyOrders: Order[] = []
+    private customBuyOrders: Order[] = []
     private sellOrders: Order[] = []
     private totalAmount = {}
     private totalValue = {}
@@ -16,20 +17,67 @@ export class OrderCycleService {
         @Inject(Logger) private readonly logger: LoggerService
     ) { }
 
+    init(key: Key): void {
+        if (!this.customBuyOrders.hasOwnProperty(key.id)) {
+            this.customBuyOrders[key.id] = []
+        }
+
+        if (!this.buyOrders.hasOwnProperty(key.id)) {
+            this.buyOrders[key.id] = []
+        }
+
+        this.setCurrentTimeFrame(key)
+    }
+
     addBuyOrder(key: Key, order: Order, price: number): void {
         const o = { ...order }
-        
-        if(order.meta.id > 101) {
+
+        if (order.meta.id > 101) {
             o.price = price
         }
 
-        if (!this.buyOrders.hasOwnProperty(key.id) ) {
-            this.buyOrders[key.id] = []
-        }
         this.buyOrders[key.id].push(o)
-        this.logger.log(key, 'addBuyOrder: 27')
+        this.logger.log(key, 'addBuyOrder')
     }
-    
+
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    addCustomBuyOrder(key: Key, order: any): Order {
+        const o = this.formatOrder(key, order, false)
+
+        if(this.getBuyOrderByCid(key, o.cid)) {
+            return
+        }
+
+        this.customBuyOrders[key.id].push(o)
+        this.logger.log(o, 'addCustomBuyOrder')
+        
+        return o
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    private formatOrder(key: Key, apiOrder: any, tradeExecuted: boolean): Order {
+        const order: Order = {
+            cid: apiOrder[2],
+            symbol: apiOrder[3],
+            type: apiOrder[8],
+            amount: apiOrder[7],
+            price: apiOrder[16],
+            meta: {
+                key: key,
+                type: 'custom',
+                aff_code: 'uxiQm6DLx',
+                tradeExecuted: tradeExecuted,
+                tradeTimestamp: apiOrder[5],
+                sentToEx: false,
+                ex_id: apiOrder[0],
+                exAmount: 0
+            }
+        }
+
+        return order
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     updateBuyOrder(key: Key, cid: number, data: any): void {
         // TODO: devide this in to updateBuyOrder and updateBuyOrderMeta
         const o = this.getBuyOrderByCid(key, cid)
@@ -45,10 +93,10 @@ export class OrderCycleService {
         if (data.hasOwnProperty('tradeTimestamp')) {
             o.meta.tradeTimestamp = data.tradeTimestamp
         }
-        if(data.hasOwnProperty('sentToEx')) {
+        if (data.hasOwnProperty('sentToEx')) {
             o.meta.sentToEx = data.sentToEx
         }
-        if(data.hasOwnProperty('exAmount')) {
+        if (data.hasOwnProperty('exAmount')) {
             o.meta.exAmount = data.exAmount
         }
     }
@@ -73,6 +121,10 @@ export class OrderCycleService {
 
     getBuyOrders(key: Key): Order[] {
         return this.buyOrders[key.id]
+    }
+
+    getCustomBuyOrders(key: Key): Order[] {
+        return this.customBuyOrders[key.id]
     }
 
     getNextBuyOrderId(key: Key): number {
@@ -109,7 +161,15 @@ export class OrderCycleService {
 
     getBuyOrderByCid(key: Key, cid: number): Order {
         this.logger.log(this.buyOrders, "buy orders")
+        // bot orders
         for (const order of this.buyOrders[key.id]) {
+            if (order.cid === cid) {
+                return order
+            }
+        }
+
+        // custom orders
+        for (const order of this.customBuyOrders[key.id]) {
             if (order.cid === cid) {
                 return order
             }
@@ -124,13 +184,14 @@ export class OrderCycleService {
             this.currentBalance[key.id] = key.startBalance
         }
 
-        if (this.currentBalance.hasOwnProperty(key.id)&& change !== 0) {
+        if (this.currentBalance.hasOwnProperty(key.id) && change !== 0) {
             this.currentBalance[key.id] = this.currentBalance[key.id] + change
         }
     }
 
     public finishOrderCycle(key: Key): void {
         this.buyOrders = []
+        this.customBuyOrders = []
         this.sellOrders = []
         this.totalAmount = []
         this.totalValue = []
