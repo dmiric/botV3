@@ -61,7 +61,7 @@ export class TradeService {
     ) { }
 
     getStatusInfo(): any {
-        if(!this.lastLongKey) {
+        if (!this.lastLongKey) {
             return {}
         }
 
@@ -360,6 +360,23 @@ export class TradeService {
                         }
                     }
 
+                    // tu: trade execution update
+                    if (data[1] == 'tu') {
+                        const teOrder = data[2]
+                        const order = this.orderCycleService.getBuyOrderByCid(key, teOrder[11])
+
+                        if (!order || order.symbol !== key.symbol) {
+                            return
+                        }
+
+                        // executed trade has to be positive
+                        // we are updating buy orders here
+                        // :TUDU dodati provjeru za manualne ordere
+                        this.orderCycleService.updateBuyOrder(key, teOrder[11], { fee: teOrder[9] });
+
+                    }
+
+
                     // on: order new
                     if (data[1] == 'n') {
                         const nOrder = data[2][4]
@@ -384,7 +401,7 @@ export class TradeService {
 
                     // on: order new
                     if (data[1] == 'on') {
-                        
+
                         if (data[2][3] !== key.symbol) {
                             return
                         }
@@ -435,9 +452,9 @@ export class TradeService {
                                 this.setTrailingOrderSent(true)
                                 this.trailingStopOrderId = order[0]
                             }
-                            
+
                             // cancel orphan order
-                            if (order[8] == 'LIMIT' && order[3] == key.symbol && order[31] !== null && 
+                            if (order[8] == 'LIMIT' && order[3] == key.symbol && order[31] !== null &&
                                 order[31].hasOwnProperty('key') && order[31]['key']['id'] != key.id) {
                                 this.orderSocketService.cancelOrder(order[0])
                                 this.logger.log(order, "os: orphan order canceled")
@@ -450,7 +467,7 @@ export class TradeService {
                             }
 
                             // add already established custom orders
-                            if (order[8] == 'LIMIT' && order[3] == key.symbol && order[31] !== null && 
+                            if (order[8] == 'LIMIT' && order[3] == key.symbol && order[31] !== null &&
                                 order[31].hasOwnProperty('key') && order[31]['key']['id'] === key.id && order[31]['type'] == 'custom') {
                                 this.orderCycleService.addCustomBuyOrder(key, order)
                                 this.orderCycleService.updateBuyOrder(key, order[2], { sentToEx: true });
@@ -540,7 +557,7 @@ export class TradeService {
                         return
                     }
 
-                    
+
 
                     // this is a questionable hack to sort out missing candles
                     if (!currentCandle) {
@@ -628,9 +645,9 @@ export class TradeService {
 
     resetTradeProcess(key: Key): void {
         this.logger.log("Resetting...", "reset trade process")
-        
+
         const lastStatus = this.getStatusInfo()
-        this.closedTrades.push({...lastStatus})
+        this.closedTrades.push({ ...lastStatus })
         this.logger.log(lastStatus, "Last Status")
 
         // unsub candle stream

@@ -15,4 +15,5 @@ export interface ObjectMeta {
     sentToEx?: boolean;
     exAmount?: number;
     type?: string;
+    fee?: number;
   }

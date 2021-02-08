@@ -81,6 +81,12 @@ export class OrderCycleService {
     updateBuyOrder(key: Key, cid: number, data: any): void {
         // TODO: devide this in to updateBuyOrder and updateBuyOrderMeta
         const o = this.getBuyOrderByCid(key, cid)
+
+        for (const [key, value] of Object.entries(data)) {
+            //console.log(`${key}: ${value}`);
+            o[key] = value
+        }
+        /*
         if (data.hasOwnProperty('price')) {
             o.price = data.price
         }
@@ -99,6 +105,7 @@ export class OrderCycleService {
         if (data.hasOwnProperty('exAmount')) {
             o.meta.exAmount = data.exAmount
         }
+        */
     }
 
     setCurrentTimeFrame(key: Key): void {
