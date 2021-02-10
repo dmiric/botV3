@@ -1,8 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Key } from '../interfaces/key.model';
-// import * as WebSocket from "ws";
-import { Subject, Observable } from 'rxjs'
-import { share, switchMap, retryWhen } from 'rxjs/operators'
+import { Subject, Observable, timer } from 'rxjs'
+import { share, switchMap, retryWhen, delayWhen } from 'rxjs/operators'
 import makeWebSocketObservable, {
     GetWebSocketResponses
 } from 'rxjs-websockets';
@@ -11,19 +10,30 @@ import makeWebSocketObservable, {
 export class CandleSocketService {
 
     public input$ = new Subject<string>()
-    private socket$ = makeWebSocketObservable('wss://api-pub.bitfinex.com/ws/2')
+    private socket$: Observable<GetWebSocketResponses<WebSocketPayload>>
+    public messages$: Observable<WebSocketPayload>
 
-    public messages$: Observable<WebSocketPayload> = this.socket$.pipe(
-        // the observable produces a value once the websocket has been opened
+    public createSocket(): void {
+        this.socket$ = makeWebSocketObservable('wss://api-pub.bitfinex.com/ws/2')
+        this.messages$ = this.socket$.pipe(
+             // the observable produces a value once the websocket has been opened
         switchMap((getResponses: GetWebSocketResponses) => {
-            console.log('websocket opened')
+            console.log('candle socket opened')
             return getResponses(this.input$)
         }),
         share(),
-    )
+        retryWhen(errors => errors.pipe( delayWhen(() => timer(10000)) )),
+        )
+    }  
 
     public setSubscription(key: Key): void {
-        const keyString = "trade:" + key.timeframe + ":" + key.symbol
+        let keyString = "trade:" + key.timeframe + ":" + key.symbol
+
+        // use tBTCUSD stream on test server
+        if(key.symbol == 'tTESTBTC:TESTUSD') {
+            keyString = "trade:" + key.timeframe + ":tBTCUSD"
+        } 
+
         const msg = this.getSubscribeMessage(keyString)
         this.input$.next(msg)
     }

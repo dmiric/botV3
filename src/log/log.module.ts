@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { InputModule } from 'src/input/input.module';
+import { InputModule } from '../input/input.module';
 import { LogService } from './log.service';
 
 @Module({

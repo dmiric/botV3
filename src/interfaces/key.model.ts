@@ -1,12 +1,17 @@
 export interface Key {
   id?: string;
-  logDates: number[];
+  action: string;
+  logDates?: number[];
   trade: string;
-  timeframe: string;
+  timeframe?: string;
   symbol: string;
-  indicatorOffset: number;
-  start: number;
-  end: number;
+  indicatorOffset?: number;
+  start?: number;
+  end?: number;
   orderlimit?: number;
   startBalance?: number;
+  safeDistance?: number;
+  trailingProfit?: number;
+  trailingDistance?: number;
+  closePercent?: number;
 }

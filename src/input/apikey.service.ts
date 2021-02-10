@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { ArgvService } from './argv.service';
 
 import HmacSHA384 from 'crypto-js/hmac-sha384';
 import hex from 'crypto-js/enc-hex';
@@ -13,9 +12,7 @@ import { Payload } from "src/interfaces/payload.model";
 export class ApiKeyService {
     
     private payload: Payload;
-    private cryptoXlsDir = path.join(os.homedir(),'Documents','CryptoXLS')
-
-    constructor(private argvService: ArgvService) { }
+    private cryptoXlsDir = path.join(os.homedir(),'Documents','Crypto')
 
     private fileAccess(filePath: string): boolean {
         fs.access(filePath, fs.constants.F_OK, function (err) {
@@ -32,7 +29,8 @@ export class ApiKeyService {
         const filePath = path.join(this.cryptoXlsDir, fileName)
 
         if(this.fileAccess(filePath)) {
-          const rawData = fs.readFileSync(filePath, "utf8");
+          let rawData = fs.readFileSync(filePath, "utf8");
+          rawData = rawData.replace(/(\r\n|\n|\r)/gm,"");
           return rawData.split(',')      
         }
     }
@@ -59,6 +57,23 @@ export class ApiKeyService {
         }
 
         return this.payload
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    public restAuth(apiPath: string, body: any) {
+        const apiKeys = this.readFile()
+        const nonce = (Date.now() * 1000).toString() // Standard nonce generator. Timestamp * 1000
+        const signature = `/api/${apiPath}${nonce}${JSON.stringify(body)}` 
+        // Consists of the complete url, nonce, and request body
+
+        const sig = HmacSHA384(signature, apiKeys[1]).toString()
+
+        return {
+            'Content-Type': 'application/json',
+            'bfx-nonce': nonce,
+            'bfx-apikey': apiKeys[0],
+            'bfx-signature': sig
+        }
     }
 
 }

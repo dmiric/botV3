@@ -1,14 +1,12 @@
-import { Injectable } from '@nestjs/common'
-import { OrderCycle } from '../interfaces/ordercycle.model'
+import { Injectable, Inject, Logger, LoggerService } from '@nestjs/common'
 import { Order } from '../interfaces/order.model'
-import { OrderCyclesService } from './ordercycles.service'
-import { LogService } from '../log/log.service'
 import { Key } from '../interfaces/key.model'
 
 @Injectable()
 export class OrderCycleService {
 
     private buyOrders: Order[] = []
+    private customBuyOrders: Order[] = []
     private sellOrders: Order[] = []
     private totalAmount = {}
     private totalValue = {}
@@ -16,30 +14,100 @@ export class OrderCycleService {
     private currentBalance = {}
 
     constructor(
-        private orderCycles: OrderCyclesService,
-        private logService: LogService
+        @Inject(Logger) private readonly logger: LoggerService
     ) { }
 
-    setCurrentBalance(key: Key, change = 0): void {
-        // set initial balance
-        if (!(key.id in this.currentBalance) && change === 0) {
-            this.currentBalance[key.id] = key.startBalance
+    init(key: Key): void {
+        if (!this.customBuyOrders.hasOwnProperty(key.id)) {
+            this.customBuyOrders[key.id] = []
         }
 
-        if (key.id in this.currentBalance && change !== 0) {
-            this.currentBalance[key.id] = this.currentBalance[key.id] + change
+        if (!this.buyOrders.hasOwnProperty(key.id)) {
+            this.buyOrders[key.id] = []
         }
 
+        this.setCurrentTimeFrame(key)
     }
 
     addBuyOrder(key: Key, order: Order, price: number): void {
         const o = { ...order }
-        o.price = price
-        //this.buyOrders.push(order)
-        if(!(key.id in this.buyOrders)) {
-            this.buyOrders[key.id] = []
+
+        if (order.meta.id > 101) {
+            o.price = price
         }
-        this.buyOrders[key.id][o.cid] = o
+
+        this.buyOrders[key.id].push(o)
+        this.logger.log(key, 'addBuyOrder')
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    addCustomBuyOrder(key: Key, order: any): Order {
+        const o = this.formatOrder(key, order, false)
+
+        if(this.getBuyOrderByCid(key, o.cid)) {
+            return
+        }
+
+        this.customBuyOrders[key.id].push(o)
+        this.logger.log(o, 'addCustomBuyOrder')
+        
+        return o
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    private formatOrder(key: Key, apiOrder: any, tradeExecuted: boolean): Order {
+        const order: Order = {
+            cid: apiOrder[2],
+            symbol: apiOrder[3],
+            type: apiOrder[8],
+            amount: apiOrder[7],
+            price: apiOrder[16],
+            meta: {
+                key: key,
+                type: 'custom',
+                aff_code: 'uxiQm6DLx',
+                tradeExecuted: tradeExecuted,
+                tradeTimestamp: apiOrder[5],
+                sentToEx: false,
+                ex_id: apiOrder[0],
+                exAmount: 0
+            }
+        }
+
+        return order
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    updateBuyOrder(key: Key, cid: number, data: any): void {
+        // TODO: devide this in to updateBuyOrder and updateBuyOrderMeta
+        const o = this.getBuyOrderByCid(key, cid)
+
+        //for (const [key, value] of Object.entries(data)) {
+            //console.log(`${key}: ${value}`);
+        //    o[key.id] = value
+        //}
+        
+        if (data.hasOwnProperty('price')) {
+            o.price = data.price
+        }
+        if (data.hasOwnProperty('tradeExecuted')) {
+            o.meta.tradeExecuted = data.tradeExecuted
+        }
+        if (data.hasOwnProperty('ex_id')) {
+            o.meta.ex_id = data.ex_id
+        }
+        if (data.hasOwnProperty('tradeTimestamp')) {
+            o.meta.tradeTimestamp = data.tradeTimestamp
+        }
+        if (data.hasOwnProperty('sentToEx')) {
+            o.meta.sentToEx = data.sentToEx
+        }
+        if (data.hasOwnProperty('exAmount')) {
+            o.meta.exAmount = data.exAmount
+        }
+        if (data.hasOwnProperty('fee')) {
+            o.meta.fee = data.fee
+        }
     }
 
     setCurrentTimeFrame(key: Key): void {
@@ -64,29 +132,36 @@ export class OrderCycleService {
         return this.buyOrders[key.id]
     }
 
+    getCustomBuyOrders(key: Key): Order[] {
+        return this.customBuyOrders[key.id]
+    }
+
     getNextBuyOrderId(key: Key): number {
-        if (!(key.id in this.buyOrders) || this.buyOrders[key.id].length < 1) {
+        if (!this.buyOrders.hasOwnProperty(key.id) || this.buyOrders[key.id].length < 1) {
+            this.logger.log(key, "getNextBuyOrderId:67")
             return 101 // 101 is always first order
         }
 
-        const potentialOrderId = this.buyOrders[key.id][this.buyOrders[key.id].length - 1].cid + 1
-        if (potentialOrderId > key.orderlimit) {
+        const potentialOrderId = this.buyOrders[key.id][this.buyOrders[key.id].length - 1].meta.id + 1
+        if (potentialOrderId > 120) {
             return 0 // no more orders
         }
         return potentialOrderId
     }
 
     getLastBuyOrder(key: Key): Order {
-        if (key.id in this.buyOrders) {
-            return this.buyOrders[key.id][this.buyOrders[key.id].length - 1]
+        if (this.buyOrders.hasOwnProperty(key.id)) {
+            if (this.buyOrders[key.id].length && this.buyOrders[key.id].length > 0) {
+                return this.buyOrders[key.id][this.buyOrders[key.id].length - 1]
+            }
         }
     }
 
     getLastUnFilledBuyOrderId(key: Key): number {
         const lastBuyOrder = this.getLastBuyOrder(key)
         if (lastBuyOrder) {
-            if (typeof (lastBuyOrder.status) == 'undefined') {
-                return lastBuyOrder.cid
+            if (lastBuyOrder.meta.tradeExecuted === false) {
+                return lastBuyOrder.meta.id
             }
         }
 
@@ -94,7 +169,41 @@ export class OrderCycleService {
     }
 
     getBuyOrderByCid(key: Key, cid: number): Order {
-        return this.buyOrders[key.id][cid]
+        this.logger.log(this.buyOrders, "buy orders")
+        // bot orders
+        for (const order of this.buyOrders[key.id]) {
+            if (order.cid === cid) {
+                return order
+            }
+        }
+
+        // custom orders
+        for (const order of this.customBuyOrders[key.id]) {
+            if (order.cid === cid) {
+                return order
+            }
+        }
+    }
+
+
+    // old code not used here anymore    
+    setCurrentBalance(key: Key, change = 0): void {
+        // set initial balance
+        if (!this.currentBalance.hasOwnProperty(key.id) && change === 0) {
+            this.currentBalance[key.id] = key.startBalance
+        }
+
+        if (this.currentBalance.hasOwnProperty(key.id) && change !== 0) {
+            this.currentBalance[key.id] = this.currentBalance[key.id] + change
+        }
+    }
+
+    public finishOrderCycle(key: Key): void {
+        this.buyOrders = []
+        this.customBuyOrders = []
+        this.sellOrders = []
+        this.totalAmount = []
+        this.totalValue = []
     }
 
     buyOrderBought(key: Key, buyOrder: Order): void {
@@ -107,10 +216,13 @@ export class OrderCycleService {
         // set balance
         const val = buyOrder.amount * buyOrder.price
         this.setCurrentBalance(key, (val - val * 2))
+        /*
         this.logService.setData(key, [
             this.currentBalance[key.id]
         ], ['balance'])
+        */
 
+        /*
         this.logService.setData(key, [
             this.totalAmount[key.id],
             this.totalValue[key.id],
@@ -118,11 +230,16 @@ export class OrderCycleService {
             buyOrder.price,
             (buyOrder.price * buyOrder.amount) * 0.001
         ], ['total_amount', 'total_value', 'bob_cid', 'bob_price', 'bob_fee'])
+        */
 
         this.setSellOrder(key, buyOrder.symbol)
     }
 
-    sellOrderSold(key: Key): void {
+    setSellOrderTrailingPrice(key: Key, trailingPrice: number): void {
+        this.sellOrders[key.id][0].meta.trailingPrice = trailingPrice;
+    }
+
+    sellOrderSold(key: Key, price: number): void {
         /*
         const cycle: OrderCycle = {
             buyOrders: this.buyOrders[key.id],
@@ -135,18 +252,24 @@ export class OrderCycleService {
 
         const buyOrder = this.getLastBuyOrder(key)
 
+        /*
         this.logService.setData(key, [
-            this.totalAmount[key.id] * this.sellOrders[key.id][0].price * buyOrder.meta.target,
-            (this.sellOrders[key.id][0].price * this.totalAmount[key.id]) * 0.001
+            this.totalAmount[key.id] * price * buyOrder.meta.target,
+            (price * this.totalAmount[key.id]) * 0.001
         ], ['profit', 'so_fee'])
+        */
 
-        this.setCurrentBalance(key, this.sellOrders[key.id][0].price * this.sellOrders[key.id][0].amount)
+        this.setCurrentBalance(key, price * this.sellOrders[key.id][0].amount)
+        /*
         this.logService.setData(key, [
             this.currentBalance[key.id]
         ], ['balance'])
+        */
 
         this.resetCycle(key)
     }
+
+
 
     private resetCycle(key: Key): void {
         this.buyOrders[key.id] = []
@@ -174,7 +297,8 @@ export class OrderCycleService {
             type: 'LIMIT',
             amount: this.totalAmount[key.id], // should be string when sending to bfx
             symbol: symbol,
-            price: this.calcSellOrderPrice(key)
+            price: this.calcSellOrderPrice(key),
+            meta: { trailingPrice: 0 }
         })
     }
 
