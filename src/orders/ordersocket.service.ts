@@ -8,7 +8,7 @@ import makeWebSocketObservable, {
 import { Payload } from "src/interfaces/payload.model"
 import { ApiKeyService } from "src/input/apikey.service"
 import { Order, ApiOrder } from '../interfaces/order.model'
-import { Key } from "src/interfaces/key.model"
+import { TradeSession } from "src/tradesession/models/tradesession.entity"
 
 @Injectable()
 export class OrderSocketService {
@@ -50,27 +50,27 @@ export class OrderSocketService {
         this.input$.complete()
     }
 
-    public closePosition(key: Key, amount: number): void {
+    public closePosition(tradeSession: TradeSession, amount: number): void {
         const order: Order =  {
             cid: Date.now(),
             type: "MARKET",
-            symbol: key.symbol,
+            symbol: tradeSession.symbol,
             amount: amount - (2 * amount),
-            meta: { aff_code: "uxiQm6DLx" }
+            meta: { aff_code: "uxiQm6DLx", tradeSessionId: tradeSession.id }
         }
 
         this.makeOrder(order)
     }
 
     
-    public makeTrailingOrder(key: Key, amount: number, priceTrailing: number): void {
+    public makeTrailingOrder(tradeSession: TradeSession, amount: number, priceTrailing: number): void {
         const order: Order =  {
             cid: Date.now(),
             type: "TRAILING STOP",
-            symbol: key.symbol,
+            symbol: tradeSession.symbol,
             amount: amount - (2 * amount),
             price_trailing: priceTrailing,
-            meta: { aff_code: "uxiQm6DLx" }
+            meta: { aff_code: "uxiQm6DLx", tradeSessionId: tradeSession.id }
         }
 
         this.makeOrder(order)

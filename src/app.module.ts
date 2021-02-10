@@ -1,4 +1,4 @@
-import { PositionModule } from './position/position.module';
+import { TradeSessionModule } from './tradesession/tradesession.module';
 import { StopController } from './input/stop.controller';
 import { ReconnectService } from './exchange/reconnect.service';
 import { StatusController } from './input/status.controller';
@@ -27,7 +27,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
   imports: [
-    PositionModule,
+    TradeSessionModule,
     TypeOrmModule.forRoot({
       type: 'sqlite',
       database: 'db',

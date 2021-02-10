@@ -1,5 +1,3 @@
-import { Key } from "./key.model";
-
 export interface ObjectMeta {
     aff_code: string;
     timeframe?: string;
@@ -8,7 +6,7 @@ export interface ObjectMeta {
     target?: number;
     trailingPrice?: number;
     id?: number;
-    key?: Key;
+    tradeSessionId: number;
     tradeExecuted?: boolean;
     ex_id?: number;
     tradeTimestamp?: number;

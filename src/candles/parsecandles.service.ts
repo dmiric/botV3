@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Key } from '../interfaces/key.model'
 import { Candle } from '../interfaces/candle.model'
 import { Candle as CandleObj } from 'bfx-api-node-models'
 import { candleWidth } from 'bfx-hf-util'
+import { TradeSession } from 'src/tradesession/models/tradesession.entity';
 
 
 @Injectable()
@@ -10,8 +10,8 @@ export class ParseCandlesService {
 
     private keepHistCandles = 2000
 
-    handleCandleStream(data: number[][][], key: Key, candleSet: Candle[]): Candle[] {
-        const candleWidthVal = candleWidth(key.timeframe)
+    handleCandleStream(data: number[][][], tradeSession: TradeSession, candleSet: Candle[]): Candle[] {
+        const candleWidthVal = candleWidth(tradeSession.timeframe)
 
         const set = this.parseSet(data)
         if(set.length > 0) {

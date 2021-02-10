@@ -1,7 +1,6 @@
 import { Injectable, Inject, Logger, LoggerService } from '@nestjs/common'
 import { Candle } from '../interfaces/candle.model'
 
-import { Key } from '../interfaces/key.model'
 import { TrailingStop } from '../interfaces/trailingstop.model'
 import { ParseCandlesService } from '../candles/parsecandles.service'
 
@@ -14,6 +13,7 @@ import { Order } from '../interfaces/order.model'
 import { normalClosureMessage } from 'rxjs-websockets';
 import { OrderSocketService } from '../orders/ordersocket.service'
 import { RestService } from './rest.service';
+import { TradeSession } from 'src/tradesession/models/tradesession.entity'
 
 @Injectable()
 export class TradeService {
@@ -35,9 +35,9 @@ export class TradeService {
     private lastPositionUpdateTime = 0;
 
     // signal
-    private lastSignal: Key;
+    private lastSignal: TradeSession;
     private lastSignalTime: string;
-    private lastLongKey: Key;
+    private lastLongKey: TradeSession;
 
     // trailing order
     private trailingOrderSent = false;
@@ -126,11 +126,10 @@ export class TradeService {
         this.logger.log(trail, "new manual trailing stop set")
     }
 
-    setLastSignal(key: Key): void {
-        if (key.action == 'long') {
-            this.lastLongKey = key
-        }
-        this.lastSignal = key;
+    setLastSignal(tradeSession: TradeSession): void {
+        this.lastLongKey = tradeSession
+
+        this.lastSignal = tradeSession;
         const d = new Date();
         this.lastSignalTime = d.toString();
 
@@ -138,8 +137,8 @@ export class TradeService {
         this.logger.log(this.lastSignalTime, "signal")
     }
 
-    async closePosition(key: Key): Promise<void> {
-        this.setLastSignal(key)
+    async closePosition(tradeSession: TradeSession): Promise<void> {
+        //this.setLastSignal(key)
 
         if (!this.getStatus()) {
             return
@@ -150,9 +149,9 @@ export class TradeService {
         }
         // check if position is positive
         // check if we are in profit over 0.5% - position[7]
-        if (this.activePosition[2] > 0 && this.activePosition[7] > key.closePercent && this.activePosition[7] > 0.5) {
+        if (this.activePosition[2] > 0 && this.activePosition[7] > tradeSession.closePercent && this.activePosition[7] > 0.5) {
             // cancel all buy orders for the symbol
-            const activeOrders = await this.restService.fetchOrders(key.symbol)
+            const activeOrders = await this.restService.fetchOrders(tradeSession.symbol)
             for (const o of activeOrders) {
                 this.orderSocketService.cancelOrder(o[0])
             }
@@ -162,15 +161,15 @@ export class TradeService {
                 this.orderSocketService.cancelOrder(this.trailingStopOrderId)
             }
 
-            this.orderSocketService.closePosition(key, this.activePosition[2])
+            this.orderSocketService.closePosition(tradeSession, this.activePosition[2])
         }
     }
 
-    restartTrade(key: Key, lastBuyOrder: Order): void {
+    restartTrade(tradeSession: TradeSession, lastBuyOrder: Order): void {
         // set lastBuyOrder in OrderCycle
-        this.orderCycleService.addBuyOrder(key, lastBuyOrder, lastBuyOrder.price)
+        this.orderCycleService.addBuyOrder(tradeSession, lastBuyOrder, lastBuyOrder.price)
         // use key to start the trade again
-        this.trade(key)
+        this.trade(tradeSession)
     }
 
     setTrailingOrderSent(trailing: boolean): void {
@@ -178,20 +177,20 @@ export class TradeService {
         this.trailingOrderSent = trailing
     }
 
-    private reConnect(key: Key, data) {
+    private reConnect(tradeSession: TradeSession, data) {
         this.orderSocketService.setReadyState(false)
         // unsub from order stream
         this.orderSubscription.unsubscribe()
         this.logger.log(data, "reconnecting to order socket")
-        this.trade(key, true)
+        this.trade(tradeSession, true)
     }
 
-    public trade(key: Key, reconnect = false): void {
-        this.setLastSignal(key)
+    public trade(tradeSession: TradeSession, reconnect = false): void {
+        this.setLastSignal(tradeSession)
         this.lastPositionUpdateTime = 0
 
         this.tradeStatus = true
-        this.orderCycleService.setCurrentTimeFrame(key)
+        this.orderCycleService.setCurrentTimeFrame(tradeSession)
 
         this.orderSocketService.createSocket()
 
@@ -208,7 +207,7 @@ export class TradeService {
                 // pu: position update
                 if (data[1] == 'pu') {
                     // we don't want all positions in log
-                    if (data[2][0] == key.symbol) {
+                    if (data[2][0] == tradeSession.symbol) {
                         this.logger.log(data, "order socket")
                     }
                 } else {
@@ -235,7 +234,7 @@ export class TradeService {
                         // hack to reconnect if position update is late 1 minute                        
                         const secDelay = Math.floor((Date.now() - this.lastPositionUpdateTime) / 1000)
                         if (secDelay > 60) { //&& this.lastBuyOrderId > 0) {
-                            this.reConnect(key, data)
+                            this.reConnect(tradeSession, data)
                         }
                     }
 
@@ -243,15 +242,15 @@ export class TradeService {
                     if (data[1] == 'ws') {
                         this.orderSocketService.setReadyState(true)
                         if (!reconnect) {
-                            this.candleStream(key)
-                            this.logger.log(key, 'start -candle socket- with this key')
+                            this.candleStream(tradeSession)
+                            this.logger.log(tradeSession, 'start -candle socket- with this key')
                         }
                     }
 
                     // wu: wallet update
                     if (data[1] == 'wu') {
                         // make orders that are not executed
-                        const order = this.orderCycleService.getLastBuyOrder(key)
+                        const order = this.orderCycleService.getLastBuyOrder(tradeSession)
 
                         if (!order) {
                             return
@@ -269,7 +268,7 @@ export class TradeService {
 
                     // pu: position update
                     if (data[1] == 'pu') {
-                        if (data[2][0] !== key.symbol) {
+                        if (data[2][0] !== tradeSession.symbol) {
                             return
                         }
 
@@ -284,18 +283,17 @@ export class TradeService {
                         }
 
                         // if profit reached X% set tracking order
-                        if (key.hasOwnProperty('trailingProfit') && key.hasOwnProperty('trailingDistance')) {
+                        if (tradeSession.hasOwnProperty('trailingProfit') && tradeSession.hasOwnProperty('trailingDistance')) {
                             if (data[2][1] !== 'ACTIVE' || this.trailingOrderSent || !this.currentPrice) {
                                 return
                             }
 
-                            let trailingProfit = key.trailingProfit;
-                            let trailingDistance = key.trailingDistance;
-                            if (this.manualTrailingStop && Object.keys(this.manualTrailingStop).length > 0 && this.manualTrailingStop.constructor === Object) {
-                                if (this.manualTrailingStop.hasOwnProperty('trailingProfit') && this.manualTrailingStop.hasOwnProperty('trailingDistance')) {
-                                    trailingProfit = this.manualTrailingStop.trailingProfit
-                                    trailingDistance = this.manualTrailingStop.trailingDistance
-                                }
+                            let trailingProfit = tradeSession.originalTrailingProfit;
+                            let trailingDistance = tradeSession.originalTrailingDistance;
+
+                            if (tradeSession.overrideTrailingProfit !== null && tradeSession.overrideTrailingDistance !== null) {
+                                trailingProfit = tradeSession.overrideTrailingProfit
+                                trailingDistance = tradeSession.overrideTrailingDistance
                             }
 
                             if (data[2][7] > trailingProfit) {
@@ -303,12 +301,12 @@ export class TradeService {
 
                                 // cancel all buy orders for the symbol
                                 // const activeOrders = await this.restService.fetchOrders(key.symbol)
-                                const buyOrders = this.orderCycleService.getBuyOrders(key)
+                                const buyOrders = this.orderCycleService.getBuyOrders(tradeSession)
                                 for (const o of buyOrders) {
                                     this.orderSocketService.cancelOrder(o.meta.ex_id)
                                 }
 
-                                this.orderSocketService.makeTrailingOrder(key, data[2][2], priceTrailing)
+                                this.orderSocketService.makeTrailingOrder(tradeSession, data[2][2], priceTrailing)
                                 this.trailingOrderSent = true
                                 //this.resetTradeProcess(key)
                             }
@@ -317,25 +315,25 @@ export class TradeService {
 
                     // pc: position closed
                     if (data[1] == 'pc') {
-                        if (data[2][0] !== key.symbol) {
+                        if (data[2][0] !== tradeSession.symbol) {
                             return
                         }
 
-                        this.resetTradeProcess(key)
+                        this.resetTradeProcess(tradeSession)
                     }
 
                     // te: trade executed
                     if (data[1] == 'te') {
                         //message: [0,"te",[563936681,"tTESTBTC:TESTUSD",1609889746511,55970331526,0.0032,33927,"MARKET",33903,-1,null,null,1609889681451]]
 
-                        if (data[2][1] !== key.symbol) {
+                        if (data[2][1] !== tradeSession.symbol) {
                             return
                         }
 
                         // executed trade has to be positive
                         // we are updating buy orders here
                         // :TUDU dodati provjeru za manualne ordere
-                        const order = this.orderCycleService.getBuyOrderByCid(key, data[2][11])
+                        const order = this.orderCycleService.getBuyOrderByCid(tradeSession, data[2][11])
                         const exAmount = data[2][4]
 
                         if (exAmount > 0 && order && data[2][11] == order.cid) {
@@ -346,8 +344,8 @@ export class TradeService {
                             const exAmountUpdate = exAmount + order.meta.exAmount
 
                             this.logger.log(data, "te: trade executed")
-                            this.logger.log(key, "te: trade executed")
-                            this.orderCycleService.updateBuyOrder(key, data[2][11], { price: data[2][5], exAmount: exAmountUpdate, tradeExecuted: tradeExecuted, tradeTimeStamp: data[2][5], ex_id: data[2][0] });
+                            this.logger.log(tradeSession, "te: trade executed")
+                            this.orderCycleService.updateBuyOrder(tradeSession, data[2][11], { price: data[2][5], exAmount: exAmountUpdate, tradeExecuted: tradeExecuted, tradeTimeStamp: data[2][5], ex_id: data[2][0] });
                         }
                     }
 
@@ -355,48 +353,48 @@ export class TradeService {
                     if (data[1] == 'n') {
                         const nOrder = data[2][4]
 
-                        if (nOrder === null || nOrder[3] !== key.symbol) {
+                        if (nOrder === null || nOrder[3] !== tradeSession.symbol) {
                             return
                         }
 
-                        const newOrder = this.orderCycleService.getBuyOrderByCid(key, nOrder[2])
+                        const newOrder = this.orderCycleService.getBuyOrderByCid(tradeSession, nOrder[2])
 
                         // if it's LIMIT order we made
                         if (nOrder[8] == 'LIMIT' && newOrder) {
-                            this.orderCycleService.updateBuyOrder(key, nOrder[2], { ex_id: nOrder[0], sentToEx: true });
+                            this.orderCycleService.updateBuyOrder(tradeSession, nOrder[2], { ex_id: nOrder[0], sentToEx: true });
                         }
 
                         // we track only our MARKET orders making MARKET orders on BFX is not allowed while bot is active
                         if (nOrder[8] == 'MARKET' && newOrder) {
-                            this.orderCycleService.updateBuyOrder(key, nOrder[2], { ex_id: nOrder[0], sentToEx: true });
+                            this.orderCycleService.updateBuyOrder(tradeSession, nOrder[2], { ex_id: nOrder[0], sentToEx: true });
                         }
 
                     }
 
                     // on: order new
                     if (data[1] == 'on') {
-                        if (data[2][3] !== key.symbol) {
+                        if (data[2][3] !== tradeSession.symbol) {
                             return
                         }
 
-                        const newOrder = this.orderCycleService.getBuyOrderByCid(key, data[2][2])
+                        const newOrder = this.orderCycleService.getBuyOrderByCid(tradeSession, data[2][2])
 
                         // if it's LIMIT order we made
                         if (data[2][8] == 'LIMIT' && newOrder) {
-                            this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0], sentToEx: true });
+                            this.orderCycleService.updateBuyOrder(tradeSession, data[2][2], { ex_id: data[2][0], sentToEx: true });
                         }
 
                         // if it's LIMIT order made manualy on BFX
                         if (data[2][8] == 'LIMIT' && !newOrder) {
-                            this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0] });
+                            this.orderCycleService.updateBuyOrder(tradeSession, data[2][2], { ex_id: data[2][0] });
                         }
 
                         // we track only our MARKET orders making MARKET orders on BFX is not allowed while bot is active
                         if (data[2][8] == 'MARKET' && newOrder) {
-                            this.orderCycleService.updateBuyOrder(key, data[2][2], { ex_id: data[2][0], sentToEx: true });
+                            this.orderCycleService.updateBuyOrder(tradeSession, data[2][2], { ex_id: data[2][0], sentToEx: true });
                         }
 
-                        if (data[2][8] == 'TRAILING STOP' && data[2][3] == key.symbol) {
+                        if (data[2][8] == 'TRAILING STOP' && data[2][3] == tradeSession.symbol) {
                             this.setTrailingOrderSent(true)
                             this.trailingStopOrderId = data[2][0]
                         }
@@ -404,22 +402,22 @@ export class TradeService {
 
                     // ou: order update
                     if (data[1] == 'ou') {
-                        if (data[2][3] !== key.symbol) {
+                        if (data[2][3] !== tradeSession.symbol) {
                             return
                         }
 
-                        const newOrder = this.orderCycleService.getBuyOrderByCid(key, data[2][2])
+                        const newOrder = this.orderCycleService.getBuyOrderByCid(tradeSession, data[2][2])
 
                         // if it's LIMIT order we made
                         if (data[2][8] == 'LIMIT' && newOrder) {
-                            this.orderCycleService.updateBuyOrder(key, data[2][2], { price: data[2][16] });
+                            this.orderCycleService.updateBuyOrder(tradeSession, data[2][2], { price: data[2][16] });
                         }
                     }
 
                     // os: order snapshot
                     if (data[1] == 'os') {
                         for (const order of data[2]) {
-                            if (order[8] == 'TRAILING STOP' && order[3] == key.symbol) {
+                            if (order[8] == 'TRAILING STOP' && order[3] == tradeSession.symbol) {
                                 this.setTrailingOrderSent(true)
                                 this.trailingStopOrderId = order[0]
                             }
@@ -428,7 +426,7 @@ export class TradeService {
 
                     // oc: order cancel
                     if (data[1] == 'oc') {
-                        if (data[2][3] != key.symbol) {
+                        if (data[2][3] != tradeSession.symbol) {
                             return
                         }
 
@@ -457,14 +455,14 @@ export class TradeService {
         )
     }
 
-    private candleStream(key: Key) {
+    private candleStream(tradeSession: TradeSession) {
         let candleSet: Candle[] = [];
         if (this.candleSubscription !== undefined) {
             this.candleSubscription.unsubscribe()
             this.candleSubscription = undefined
         }
         this.candleSocketService.createSocket()
-        this.logger.log(key, 'candle socket started with this key')
+        this.logger.log(tradeSession, 'candle socket started with this key')
 
         this.candleSubscription = this.candleSocketService.messages$.subscribe(
             (message: string) => {
@@ -483,11 +481,11 @@ export class TradeService {
                 if (data.event === "info") {
                     // if we just connected to the stream we find the last order we want to start from
                     // and we send a message to start the stream
-                    this.candleSocketService.setSubscription(key)
+                    this.candleSocketService.setSubscription(tradeSession)
                 } else {
                     if (data.event) {
                         this.logger.log(data, 'candle socket')
-                        this.logger.log(key, 'event key')
+                        this.logger.log(tradeSession, 'event key')
                         return;
                     }
 
@@ -495,7 +493,7 @@ export class TradeService {
                         return
                     }
 
-                    candleSet = this.parseCandlesService.handleCandleStream(data, key, candleSet)
+                    candleSet = this.parseCandlesService.handleCandleStream(data, tradeSession, candleSet)
 
                     const currentCandle: Candle = candleSet[candleSet.length - 1]
 
@@ -508,11 +506,9 @@ export class TradeService {
                         return
                     }
 
-                    
-
                     // this is a questionable hack to sort out missing candles
                     if (!currentCandle) {
-                        this.logger.log(key, 'candle socket key')
+                        this.logger.log(tradeSession, 'candle socket key')
                         this.logger.log("Borked!", "candle socket error")
                     }
 
@@ -521,7 +517,7 @@ export class TradeService {
 
                     // get stack of candles to run a price check on
                     if (candleSet.length > 200) {
-                        const lastBuyOrder = this.orderCycleService.getLastBuyOrder(key)
+                        const lastBuyOrder = this.orderCycleService.getLastBuyOrder(tradeSession)
                         if (lastBuyOrder) {
                             this.logger.log(lastBuyOrder, 'lastBuyOrder candles > 200')
                             if (lastBuyOrder.meta.tradeExecuted) {
@@ -551,23 +547,23 @@ export class TradeService {
                         */
                     }
 
-                    if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId(key)) {
-                        const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet, key)
+                    if (candleSet && candleSet.length > 1 && !this.orderCycleService.getLastUnFilledBuyOrderId(tradeSession)) {
+                        const orderId = this.behaviorService.nextOrderIdThatMatchesRules(candleSet, tradeSession)
 
                         //const orderId = 101;
                         // await new Promise(r => setTimeout(r, 500));
                         if (orderId && this.lastBuyOrderId != orderId && this.orderSocketService.getSocketReadyState()) {
                             this.logger.log(data, 'candle socket')
-                            this.logger.log(key, 'candle socket key: 459')
-                            const order = { ...this.ordersService.getOrder(key, orderId, currentCandle.close) }
-                            this.logger.log(key, 'candle socket key: 461')
+                            this.logger.log(tradeSession, 'candle socket key: 459')
+                            const order = { ...this.ordersService.getOrder(tradeSession, orderId, currentCandle.close) }
+                            this.logger.log(tradeSession, 'candle socket key: 461')
                             let buyPrice = 0
                             if (order.meta.id != 101) {
                                 buyPrice = this.behaviorService.getBuyOrderPrice(candleSet)
                                 order['price'] = buyPrice
                             }
 
-                            this.orderCycleService.addBuyOrder(key, order, buyPrice)
+                            this.orderCycleService.addBuyOrder(tradeSession, order, buyPrice)
                             this.lastBuyOrderId = orderId
 
                             candleSet = []
@@ -594,7 +590,7 @@ export class TradeService {
         )
     }
 
-    resetTradeProcess(key: Key): void {
+    resetTradeProcess(tradeSession: TradeSession): void {
         this.logger.log("Resetting...", "reset trade process")
         const lastStatus = this.getStatusInfo()
         this.logger.log(lastStatus, "Last Status")
@@ -603,7 +599,7 @@ export class TradeService {
             this.candleSubscription.unsubscribe()
         }
         // clean up all the data from the previous cycle
-        this.orderCycleService.finishOrderCycle(key)
+        this.orderCycleService.finishOrderCycle(tradeSession)
         // unsub from order stream
         this.orderSubscription.unsubscribe()
         // reset active position

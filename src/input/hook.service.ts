@@ -3,13 +3,15 @@ import { TradeService } from '../exchange/trade.service'
 import { HookReqDto } from './dto/HookReqDto'
 import { Key } from '../interfaces/key.model'
 import { TrailingStop } from '../interfaces/trailingstop.model'
+import { TradeSessionService } from '../tradesession/tradesession.service'
+import { TradeSession } from 'src/tradesession/models/tradesession.entity'
 
 @Injectable()
 export class HookService {
 
-    constructor(private tradeService: TradeService) { }
+    constructor(private tradeService: TradeService, private tradeSession: TradeSessionService) { }
 
-    start(req: HookReqDto): void {
+    async start(req: HookReqDto): Promise <void> {
         let key: Key
 
         if (!this.validate(req)) {
@@ -50,11 +52,27 @@ export class HookService {
                     safeDistance: req.safeDistance
                 }
 
+                const tradeSession: TradeSession = {
+                    symbol: req.symbol,
+                    startTime: new Date(),
+                    timeframe: req.timeframe,
+                    startBalance: req.startBalance,
+                    safeDistance: req.safeDistance,
+                    status: 'starting'
+                }
+                
+                if (req.hasOwnProperty("priceTrailing")) {
+                    tradeSession.originalTrailingProfit = req.priceTrailing.profit
+                    tradeSession.originalTrailingDistance = req.priceTrailing.distance
+                }
+
+
                 if (req.hasOwnProperty("priceTrailing")) {
                     key["trailingProfit"] = req.priceTrailing.profit
                     key["trailingDistance"] = req.priceTrailing.distance
                 }
 
+                const trade = await this.tradeSession.create(tradeSession)
                 this.tradeService.trade(key)
                 break;
             case 'trail':

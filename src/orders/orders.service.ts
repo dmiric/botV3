@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Order } from '../interfaces/order.model';
-import { Key } from '../interfaces/key.model';
+import { TradeSession } from 'src/tradesession/models/tradesession.entity';
 
 
 @Injectable()
@@ -37,26 +37,26 @@ export class OrdersService {
         return this.orders;
     }
 
-    getOrder(key: Key, id: number, price: number): Order {
-        return this.createOrder(key, id, price)
+    getOrder(tradeSession: TradeSession, id: number, price: number): Order {
+        return this.createOrder(tradeSession, id, price)
 
     }
 
-    createOrder(key: Key, id: number, price: number): Order {
-        const amount = this.round(this.calculateOrderAmount(key.startBalance, id, price), 4)
+    createOrder(tradeSession: TradeSession, id: number, price: number): Order {
+        const amount = this.round(this.calculateOrderAmount(tradeSession.startBalance, id, price), 4)
         return {
             cid: Date.now(),
             type: "LIMIT",
-            symbol: key.symbol,
+            symbol: tradeSession.symbol,
             amount: amount,
             meta: {
                 aff_code: "uxiQm6DLx",
-                key: key,
+                tradeSessionId: tradeSession.id,
                 id: id,
                 tradeExecuted: false,
                 sentToEx: false,
                 exAmount: 0
-                //target: key.target // this needs to be replaced
+                //change sentToEx and tradeExecuted to status when we get to order refactoring
             }
         }
     }
