@@ -1,10 +1,10 @@
 import { Injectable } from "@nestjs/common";
-import { Key } from '../interfaces/key.model';
 import { Subject, Observable, timer } from 'rxjs'
 import { share, switchMap, retryWhen, delayWhen } from 'rxjs/operators'
 import makeWebSocketObservable, {
     GetWebSocketResponses
 } from 'rxjs-websockets';
+import { TradeSession } from "src/tradesession/models/tradesession.entity";
 
 @Injectable()
 export class CandleSocketService {
@@ -26,23 +26,23 @@ export class CandleSocketService {
         )
     }  
 
-    public setSubscription(key: Key): void {
-        let keyString = "trade:" + key.timeframe + ":" + key.symbol
+    public setSubscription(tradeSession: TradeSession): void {
+        let tradeSessionString = "trade:" + tradeSession.timeframe + ":" + tradeSession.symbol
 
         // use tBTCUSD stream on test server
-        if(key.symbol == 'tTESTBTC:TESTUSD') {
-            keyString = "trade:" + key.timeframe + ":tBTCUSD"
+        if(tradeSession.symbol == 'tTESTBTC:TESTUSD') {
+            tradeSessionString = "trade:" + tradeSession.timeframe + ":tBTCUSD"
         } 
 
-        const msg = this.getSubscribeMessage(keyString)
+        const msg = this.getSubscribeMessage(tradeSessionString)
         this.input$.next(msg)
     }
 
-    private getSubscribeMessage(keyString: string): string {
+    private getSubscribeMessage(tradeSessionString: string): string {
         return JSON.stringify({
             event: 'subscribe',
             channel: 'candles',
-            key: keyString //'trade:TIMEFRAME:SYMBOL'
+            key: tradeSessionString //'trade:TIMEFRAME:SYMBOL'
         })
     }
 

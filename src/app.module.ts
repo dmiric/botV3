@@ -1,3 +1,4 @@
+import { TradeSessionModule } from './tradesession/tradesession.module';
 import { StopController } from './input/stop.controller';
 import { ReconnectService } from './exchange/reconnect.service';
 import { StatusController } from './input/status.controller';
@@ -21,11 +22,19 @@ import { CandlesModule } from './candles/candles.module';
 import { Module, Logger } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClosedTradesController } from './input/closedtrades.controller';
 
 
 @Module({
   imports: [
+    TradeSessionModule,
+    TypeOrmModule.forRoot({
+      type: 'sqlite',
+      database: 'db',
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      synchronize: true, // this needs to be removed in production
+    }),
     ExchangeModule,
     LogModule,
     BehaviourModule,

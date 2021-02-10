@@ -25,6 +25,7 @@
     "@nestjs/config": "^0.6.1",
     "@nestjs/core": "^7.0.0",
     "@nestjs/platform-express": "^7.0.0",
+    "@nestjs/typeorm": "^7.1.5",
     "bfx-api-node-models": "^1.2.11",
     "convert-array-to-csv": "^2.0.0",
     "convert-csv-to-array": "^1.0.3",
@@ -42,8 +43,10 @@
     "rimraf": "^3.0.2",
     "rxjs": "^6.6.3",
     "rxjs-websockets": "^8.0.1",
+    "sqlite3": "^5.0.1",
     "stay-awake": "0.0.3",
     "trading-signals": "^1.2.0",
+    "typeorm": "^0.2.30",
     "winston": "^3.3.3",
     "ws": "^7.4.0"
   },

@@ -2,7 +2,7 @@ import { Injectable, Logger, LoggerService, Inject } from '@nestjs/common'
 import { OrdersService } from '../orders/orders.service'
 import { Candle } from '../interfaces/candle.model'
 import { OrderCycleService } from '../orders/ordercycle.service'
-import { Key } from '../interfaces/key.model'
+import { TradeSession } from 'src/tradesession/models/tradesession.entity'
 
 
 @Injectable()
@@ -27,7 +27,7 @@ export class BencBehaviourService {
 
     // do this some day if we start working with more behaviours
     // https://stackoverflow.com/questions/53776882/how-to-handle-nestjs-dependency-injection-when-extending-a-class-for-a-service
-    public nextOrderIdThatMatchesRules(candles: Candle[], key: Key): number {
+    public nextOrderIdThatMatchesRules(candles: Candle[], tradeSession: TradeSession): number {
 
         const candleStack: Candle[] = [];
 
@@ -37,10 +37,10 @@ export class BencBehaviourService {
 
         this.candles = candleStack
 
-        const nextOrderId = this.ordersCycle.getNextBuyOrderId(key)
+        const nextOrderId = this.ordersCycle.getNextBuyOrderId(tradeSession)
         // in case this is the first order return it right away
         if (nextOrderId === 101) {
-            this.logger.log(key, "nextOrderIdThatMatchesRules:45")
+            this.logger.log(tradeSession, "nextOrderIdThatMatchesRules:45")
             this.reach = 1;
             return nextOrderId
         }
@@ -67,10 +67,10 @@ export class BencBehaviourService {
 
         // find lowest low price in candle stack
         const lowestPrice = this.findLowestPrice(candleStack, 'low')
-        const nextOrder = this.ordersService.getOrder(key, nextOrderId, lowestPrice)
+        const nextOrder = this.ordersService.getOrder(tradeSession, nextOrderId, lowestPrice)
         this.nextOrder = { ...nextOrder }
         // if order is other than frist one check if currentPrice is low enough
-        if (this.isPriceLowEnough(key, lowestPrice)) {
+        if (this.isPriceLowEnough(tradeSession, lowestPrice)) {
             this.reach = 6;
             return nextOrder.meta.id
         }
@@ -83,9 +83,9 @@ export class BencBehaviourService {
         return this.findLowestPrice(candles, 'low')
     }
 
-    private isPriceLowEnough(key: Key, lowestPrice: number): boolean {
-        const lastOrder = this.ordersCycle.getLastBuyOrder(key)
-        const conditionPrice: number = lastOrder.price - (lastOrder.price * key.safeDistance / 100)
+    private isPriceLowEnough(tradeSession: TradeSession, lowestPrice: number): boolean {
+        const lastOrder = this.ordersCycle.getLastBuyOrder(tradeSession)
+        const conditionPrice: number = lastOrder.price - (lastOrder.price * tradeSession.safeDistance / 100)
 
         console.log("Is Price Low Enough: " + lowestPrice + ":" + conditionPrice)
 
