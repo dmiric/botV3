@@ -12,4 +12,6 @@ export interface ObjectMeta {
     tradeTimestamp?: number;
     sentToEx?: boolean;
     exAmount?: number;
+    type?: string;
+    fee?: number;
   }

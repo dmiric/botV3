@@ -95,12 +95,11 @@ export class HookService {
                         trail.trailingProfit = req.priceTrailing.profit
                         trail.trailingDistance = req.priceTrailing.distance
                         this.tradeService.setManualTrailingStop(trail)
-                    }                    
+                    }
                 }
                 break;
         }
     }
-
 
     validate(req: HookReqDto): boolean {
         if (req.action !== 'long' && req.action !== 'close' && req.action !== 'trail') {

@@ -8,6 +8,8 @@ export class OrderCycleService {
 
     private buyOrders: Order[][]
     private sellOrders: Order[][]
+    private customBuyOrders: Order[][]
+
     private totalAmount = {}
     private totalValue = {}
     private currentTimeFrame = {}
@@ -17,10 +19,23 @@ export class OrderCycleService {
         @Inject(Logger) private readonly logger: LoggerService
     ) { }
 
+
+    init(tradeSession: TradeSession): void {
+        if (!this.customBuyOrders.hasOwnProperty(tradeSession.id)) {
+            this.customBuyOrders[tradeSession.id] = []
+        }
+
+        if (!this.buyOrders.hasOwnProperty(tradeSession.id)) {
+            this.buyOrders[tradeSession.id] = []
+        }
+
+        this.setCurrentTimeFrame(tradeSession)
+    }
+
     addBuyOrder(tradeSession: TradeSession, order: Order, price: number): void {
         const o = { ...order }
-        
-        if(order.meta.id > 101) {
+
+        if (order.meta.id > 101) {
             o.price = price
         }
 
@@ -30,10 +45,55 @@ export class OrderCycleService {
         this.buyOrders[tradeSession.id].push(o)
         this.logger.log(tradeSession, 'addBuyOrder: 27')
     }
-    
+  
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    addCustomBuyOrder(key: Key, order: any): Order {
+        const o = this.formatOrder(key, order, false)
+
+        if(this.getBuyOrderByCid(key, o.cid)) {
+            return
+        }
+
+        this.customBuyOrders[key.id].push(o)
+        this.logger.log(o, 'addCustomBuyOrder')
+        
+        return o
+    }
+
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    private formatOrder(key: Key, apiOrder: any, tradeExecuted: boolean): Order {
+        const order: Order = {
+            cid: apiOrder[2],
+            symbol: apiOrder[3],
+            type: apiOrder[8],
+            amount: apiOrder[7],
+            price: apiOrder[16],
+            meta: {
+                key: key,
+                type: 'custom',
+                aff_code: 'uxiQm6DLx',
+                tradeExecuted: tradeExecuted,
+                tradeTimestamp: apiOrder[5],
+                sentToEx: false,
+                ex_id: apiOrder[0],
+                exAmount: 0
+            }
+        }
+
+        return order
+    }
+
+
     updateBuyOrder(tradeSession: TradeSession, cid: number, data: any): void {
         // TODO: devide this in to updateBuyOrder and updateBuyOrderMeta
         const o = this.getBuyOrderByCid(tradeSession, cid)
+
+        //for (const [key, value] of Object.entries(data)) {
+            //console.log(`${key}: ${value}`);
+        //    o[key.id] = value
+        //}
+        
+
         if (data.hasOwnProperty('price')) {
             o.price = data.price
         }
@@ -46,11 +106,14 @@ export class OrderCycleService {
         if (data.hasOwnProperty('tradeTimestamp')) {
             o.meta.tradeTimestamp = data.tradeTimestamp
         }
-        if(data.hasOwnProperty('sentToEx')) {
+        if (data.hasOwnProperty('sentToEx')) {
             o.meta.sentToEx = data.sentToEx
         }
-        if(data.hasOwnProperty('exAmount')) {
+        if (data.hasOwnProperty('exAmount')) {
             o.meta.exAmount = data.exAmount
+        }
+        if (data.hasOwnProperty('fee')) {
+            o.meta.fee = data.fee
         }
     }
 
@@ -76,6 +139,10 @@ export class OrderCycleService {
         return this.buyOrders[tradeSession.id]
     }
 
+    getCustomBuyOrders(tradeSession: TradeSession): Order[] {
+        return this.customBuyOrders[tradeSession.id]
+    }
+  
     getNextBuyOrderId(tradeSession: TradeSession): number {
         if (!this.buyOrders.hasOwnProperty(tradeSession.id) || this.buyOrders[tradeSession.id].length < 1) {
             this.logger.log(tradeSession, "getNextBuyOrderId:67")
@@ -115,6 +182,13 @@ export class OrderCycleService {
                 return order
             }
         }
+
+        // custom orders
+        for (const order of this.customBuyOrders[key.id]) {
+            if (order.cid === cid) {
+                return order
+            }
+        }
     }
 
 
@@ -125,13 +199,14 @@ export class OrderCycleService {
             this.currentBalance[key.id] = key.startBalance
         }
 
-        if (this.currentBalance.hasOwnProperty(key.id)&& change !== 0) {
+        if (this.currentBalance.hasOwnProperty(key.id) && change !== 0) {
             this.currentBalance[key.id] = this.currentBalance[key.id] + change
         }
     }
 
     public finishOrderCycle(tradeSession: TradeSession): void {
         this.buyOrders = []
+        this.customBuyOrders = []
         this.sellOrders = []
         this.totalAmount = []
         this.totalValue = []

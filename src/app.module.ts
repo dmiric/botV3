@@ -23,6 +23,7 @@ import { Module, Logger } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ClosedTradesController } from './input/closedtrades.controller';
 
 
 @Module({
@@ -44,7 +45,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
   controllers: [
     StopController,
     StatusController,
-    HookController, AppController],
+    HookController, AppController, ClosedTradesController],
   providers: [
     ReconnectService,
     Logger,

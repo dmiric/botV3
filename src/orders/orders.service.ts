@@ -55,8 +55,9 @@ export class OrdersService {
                 id: id,
                 tradeExecuted: false,
                 sentToEx: false,
-                exAmount: 0
+                exAmount: 0,
                 //change sentToEx and tradeExecuted to status when we get to order refactoring
+                type: 'bot'
             }
         }
     }

@@ -37,7 +37,7 @@ export class OrderSocketService {
                 return response
             }),
             share(),
-            retryWhen(errors => errors.pipe( delayWhen(() => timer(10000, 1000)) )),
+            retryWhen(errors => errors.pipe(delayWhen(() => timer(10000, 1000)))),
         )
     }
 
@@ -62,7 +62,7 @@ export class OrderSocketService {
         this.makeOrder(order)
     }
 
-    
+   
     public makeTrailingOrder(tradeSession: TradeSession, amount: number, priceTrailing: number): void {
         const order: Order =  {
             cid: Date.now(),
@@ -74,12 +74,11 @@ export class OrderSocketService {
         }
 
         this.makeOrder(order)
-        
     }
 
-    public makeOrder(order: Order): void{
+    public makeOrder(order: Order): void {
         // make sure we prevent any order duplication
-        if(this.lastOrderCid == order.cid) {
+        if (this.lastOrderCid == order.cid) {
             return
         }
         this.lastOrderCid = order.cid
@@ -91,9 +90,20 @@ export class OrderSocketService {
         this.send(inputPayload)
     }
 
-    public requestReqcalc(): void  {
+    public updateOrder(order: Order): void {
+        // make order
+        const apiOrder = {
+            cid: order.cid,
+            meta: { ...order.meta }
+        }
+        const inputPayload = [0, 'uo', null, apiOrder] // Note how the payload is constructed here. It consists of an array starting with the CHANNEL_ID, TYPE, and PLACEHOLDER and is followed by the inputDetails object.
+        console.log(inputPayload)
+        this.send(inputPayload)
+    }
+
+    public requestReqcalc(): void {
         const string = "balance"
-        const inputPayload = [ 0, 'calc', null, [[string]] ] // Note how the payload is constructed here. It consists of an array starting with the CHANNEL_ID, TYPE, and PLACEHOLDER and is followed by the inputDetails object.
+        const inputPayload = [0, 'calc', null, [[string]]] // Note how the payload is constructed here. It consists of an array starting with the CHANNEL_ID, TYPE, and PLACEHOLDER and is followed by the inputDetails object.
         this.send(inputPayload)
     }
 
@@ -121,27 +131,27 @@ export class OrderSocketService {
         }
 
         // orders that don't have price are switched to MARKET order
-        if(order.hasOwnProperty('price')) {
+        if (order.hasOwnProperty('price')) {
             apiOrder['price'] = order.price.toFixed(2)
         } else {
-            if(apiOrder.type == 'LIMIT') {
+            if (apiOrder.type == 'LIMIT') {
                 apiOrder.type = 'MARKET'
             }
         }
 
-        if(order.hasOwnProperty('price_trailing')) {
+        if (order.hasOwnProperty('price_trailing')) {
             apiOrder['price_trailing'] = order.price_trailing.toFixed(2)
         }
 
         return apiOrder;
     }
 
-    private send(payload: Payload|any): void {
+    private send(payload: Payload | any): void {
         const msg = this.stringify(payload)
         this.input$.next(msg)
     }
 
-    private stringify(payload: Payload|any): string {
+    private stringify(payload: Payload | any): string {
         return JSON.stringify(payload)
     }
 
