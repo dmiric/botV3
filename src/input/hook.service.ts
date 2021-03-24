@@ -1,108 +1,162 @@
 import { Injectable } from '@nestjs/common'
 import { TradeService } from '../exchange/trade.service'
 import { HookReqDto } from './dto/HookReqDto'
-import { Key } from '../interfaces/key.model'
-import { TrailingStop } from '../interfaces/trailingstop.model'
-import { TradeSessionService } from '../tradesession/tradesession.service'
+import { TradeSessionBLService } from '../tradesession/tradesession.bl.service'
 import { TradeSession } from 'src/tradesession/models/tradesession.entity'
+import { TradeSystemRulesService } from 'src/tradesystem/tradesystem.rules.service'
 
 @Injectable()
 export class HookService {
 
-    constructor(private tradeService: TradeService, private tradeSession: TradeSessionService) { }
+    constructor(
+        private readonly tradeService: TradeService,
+        private readonly tradeSessionBLService: TradeSessionBLService,
+        private readonly tradeSystemRules: TradeSystemRulesService) { }
 
-    async start(req: HookReqDto): Promise <void> {
-        let key: Key
-
+    async start(req: HookReqDto): Promise<void> {
         if (!this.validate(req)) {
             return
         }
 
         switch (req.action) {
-            case 'close':
-                key = {
-                    id: 'id' + Math.floor(Math.random() * (999999999 + 1) + 0),
-                    action: req.action,
-                    symbol: req.symbol,
-                    trade: "trade",
-                    closePercent: req.closePercent
-                }
+            case 'close':/*
+                const tradeSession = await this.tradeSessionBLService.findLastActiveBySymbol(req.symbol)
+                tradeSession.closePercent = req.buy.closePercent
 
-                this.tradeService.closePosition(key)
+                this.tradeSessionBLService.save(tradeSession)
+                this.tradeService.closePosition(tradeSession[0])
+                */
                 break;
             case 'long':
-                if (this.tradeService.getStatus() || this.tradeService.isStopped() || this.tradeService.isStarting()) {
-                    console.log("already active")
+                if (req.hasOwnProperty('update') && req.update === true) {
+                    this.updateLong(req)
                     return
                 }
 
-                if (this.tradeService.getManualPosition()) {
-                    console.log("already active - manual position")
-                    return
-                }
-
-                key = {
-                    id: 'id' + Math.floor(Math.random() * (999999999 + 1) + 0),
-                    action: req.action,
-                    symbol: req.symbol,
-                    logDates: [],
-                    trade: "trade",
-                    timeframe: req.timeframe, // should be first order timeframe
-                    startBalance: req.startBalance,
-                    safeDistance: req.safeDistance
-                }
-
-                const tradeSession: TradeSession = {
-                    symbol: req.symbol,
-                    startTime: new Date(),
-                    timeframe: req.timeframe,
-                    startBalance: req.startBalance,
-                    safeDistance: req.safeDistance,
-                    status: 'starting'
-                }
-                
-                if (req.hasOwnProperty("priceTrailing")) {
-                    tradeSession.originalTrailingProfit = req.priceTrailing.profit
-                    tradeSession.originalTrailingDistance = req.priceTrailing.distance
-                }
-
-
-                if (req.hasOwnProperty("priceTrailing")) {
-                    key["trailingProfit"] = req.priceTrailing.profit
-                    key["trailingDistance"] = req.priceTrailing.distance
-                }
-
-                const trade = await this.tradeSession.create(tradeSession)
-                this.tradeService.trade(key)
-                break;
-            case 'trail':
-                if (this.tradeService.getManualPosition()) {
-                    key = {
-                        action: req.action,
-                        symbol: req.symbol,
-                        trade: "trade"
-                    }
-
-                    if (req.hasOwnProperty("priceTrailing")) {
-                        key["trailingProfit"] = req.priceTrailing.profit
-                        key["trailingDistance"] = req.priceTrailing.distance
-                    }
-
-                    this.tradeService.trade(key, true)
-                } else {
-                    if (req.hasOwnProperty("priceTrailing")) {
-                        const trail: TrailingStop = {}
-                        trail.trailingProfit = req.priceTrailing.profit
-                        trail.trailingDistance = req.priceTrailing.distance
-                        this.tradeService.setManualTrailingStop(trail)
-                    }
-                }
+                this.newLong(req)
                 break;
         }
     }
 
+    async newLong(req: HookReqDto): Promise<void> {
+        if (this.tradeService.getStatus() || this.tradeService.isStopped() || this.tradeService.isStarting()) {
+            console.log("already active")
+            return
+        }
+
+        // refactor this to new TradeSession from req?
+        const buyRules = await this.tradeSystemRules.findByIds([req.buy.buyRules])
+        const sellRules = await this.tradeSystemRules.findByIds([req.sell.sellRules])
+        let salesRules = null
+        if (req.sell.salesRules) {
+            salesRules = await this.tradeSystemRules.findByIds(req.sell.salesRules)
+        }
+
+        let startTime = null
+        if (req.startTime) {
+            const reqST = req.startTime.split("-")
+            startTime = new Date(Date.UTC(parseInt(reqST[2]), parseInt(reqST[1]) - 1, parseInt(reqST[0])))
+        }
+
+        const newTradeSession: TradeSession = {
+            symbol: req.symbol,
+            startTime: startTime ? startTime : Date.now(),
+            timeframe: req.timeframe,
+            startBalance: req.buy.startBalance,
+            safeDistance: req.buy.safeDistance,
+            status: 'new',
+            originalTrailingDistance: req.sell.trailingDistance ? req.sell.trailingDistance : null,
+            buyRules: buyRules[0],
+            sellRules: sellRules[0],
+            strategy: req.strategy,
+            priceDiff: req.buy.priceDiff ? req.buy.priceDiff : null,
+            priceDiffLow: req.buy.priceDiffLow ? JSON.stringify(req.buy.priceDiffLow) : null,
+            exchange: req.exchange
+        }
+
+        if (salesRules != null) {
+            newTradeSession.salesRules = salesRules
+        }
+
+        let endTime = null
+        if (req.endTime) {
+            const reqST = req.endTime.split("-")
+            endTime = new Date(Date.UTC(parseInt(reqST[2]), parseInt(reqST[1]) - 1, parseInt(reqST[0])))
+            newTradeSession.endTime = endTime ? endTime : Date.now()
+        }
+
+        if (req.buy.investment) {
+            newTradeSession.investment = req.buy.investment
+        }
+
+        const tS = await this.tradeSessionBLService.create(newTradeSession)
+        tS.init()
+        await this.tradeService.trade(tS)
+    }
+
+    async updateLong(req: HookReqDto): Promise<void> {
+        const tradeSession = await this.tradeSessionBLService.findLastActiveBySymbol(req.symbol)
+
+        if (req.hasOwnProperty('timeframe')) {
+            tradeSession.timeframe = req.timeframe
+        }
+
+        if (req.hasOwnProperty('buy')) {
+            const buy = req.buy
+
+            if (buy.hasOwnProperty('startBalance')) {
+                tradeSession.startBalance = buy.startBalance
+            }
+
+            if (buy.hasOwnProperty('safeDistance')) {
+                tradeSession.safeDistance = buy.safeDistance
+            }
+
+            if (buy.hasOwnProperty('priceDiff')) {
+                tradeSession.priceDiff = buy.priceDiff
+            }
+
+            if (buy.hasOwnProperty('priceDiffLow')) {
+                tradeSession.priceDiffLow = JSON.stringify(buy.priceDiffLow)
+            }
+
+            if (buy.hasOwnProperty('investment')) {
+                tradeSession.investment = buy.investment
+            }
+
+            if (buy.hasOwnProperty('buyRules')) {
+                const buyRules = await this.tradeSystemRules.findByIds([buy.buyRules])
+                tradeSession.buyRules = buyRules[0]
+            }
+        }
+
+        if (req.hasOwnProperty('sell')) {
+            const sell = req.sell
+
+            if (sell.hasOwnProperty('trailingDistance')) {
+                tradeSession.overrideTrailingDistance = req.sell.trailingDistance
+            }
+
+            if (sell.hasOwnProperty('sellRules')) {
+                const sellRules = await this.tradeSystemRules.findByIds([sell.sellRules])
+                tradeSession.sellRules = sellRules[0]
+            }
+
+            if (sell.hasOwnProperty('salesRules')) {
+                let salesRules = null
+                if (req.sell.salesRules) {
+                    salesRules = await this.tradeSystemRules.findByIds(req.sell.salesRules)
+                }
+                tradeSession.salesRules = salesRules
+            }
+        }
+
+        await this.tradeSessionBLService.save(tradeSession)
+        this.tradeService.setActiveTradeSession(tradeSession)
+    }
+
     validate(req: HookReqDto): boolean {
-        if (req.action !== 'long' && req.action !== 'close' && req.action !== 'trail') {
+        if (req.action !== 'long' && req.action !== 'close') {
             console.log("Incorrect action param.")
             return false
         }
@@ -126,39 +180,37 @@ export class HookService {
         }
 
         if (req.action === 'long') {
-            if (!req.hasOwnProperty('startBalance') || req.startBalance < 1) {
+            if (!req.hasOwnProperty('buy')) {
+                console.log("Missing buy params.")
+                return false
+            }
+
+            if (!req.buy.hasOwnProperty('buyRules')) {
+                console.log("Missing buy rules.")
+                return false
+            }
+
+            if (!req.hasOwnProperty('sell')) {
+                console.log("Missing sell params.")
+                return false
+            }
+
+            if (!req.sell.hasOwnProperty('sellRules')) {
+                console.log("Missing sell rules.")
+                return false
+            }
+
+            if (!req.buy.hasOwnProperty('startBalance') || req.buy.startBalance < 1) {
                 console.log("Missing startBalance param.")
                 return false
             }
 
-            if (!req.hasOwnProperty('safeDistance') || (req.safeDistance < 0 && req.safeDistance > 100)) {
-                console.log("Missing or incorrect safeDistance param.")
+            if (req.buy.hasOwnProperty('safeDistance') && (req.buy.safeDistance < 0 && req.buy.safeDistance > 100)) {
+                console.log("Incorrect safeDistance param.")
                 return false
             }
 
-            if (req.hasOwnProperty("priceTrailing")) {
-                const priceTrailing = req.priceTrailing;
-                if (!priceTrailing.hasOwnProperty('profit')) {
-                    return false
-                }
-                if (!priceTrailing.hasOwnProperty('distance')) {
-                    return false
-                }
-            }
         }
-
-        if (req.action === 'trail') {
-            if (req.hasOwnProperty("priceTrailing")) {
-                const priceTrailing = req.priceTrailing;
-                if (!priceTrailing.hasOwnProperty('profit')) {
-                    return false
-                }
-                if (!priceTrailing.hasOwnProperty('distance')) {
-                    return false
-                }
-            }
-        }
-
         return true
     }
 

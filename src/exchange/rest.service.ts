@@ -1,14 +1,31 @@
 import { Injectable } from '@nestjs/common'
 import fetch from 'node-fetch'
 
-import { Order } from '../interfaces/order.model'
-import { ApiKeyService } from "src/input/apikey.service"
-import { Key } from '../interfaces/key.model'
+import { ApiKeyService } from '../input/apikey.service'
 
 @Injectable()
 export class RestService {
 
     constructor(private apiKeyService: ApiKeyService) {
+    }
+
+    async getCandleData(pathParamsData: string, startTime: number, endTime: number): Promise<any> {
+        // wait 600ms delay so we don't hit the rate limit
+        await new Promise(r => setTimeout(r, 600));
+
+        const url = 'https://api-pub.bitfinex.com/v2'
+
+        const pathParams = 'candles/' + pathParamsData + '/hist' // Change these based on relevant path params. /last for last candle
+        const queryParams = 'limit=10000&sort=1&start=' + startTime + '&end=' + endTime // Change these based on relevant query params
+
+        try {
+            const req = await fetch(`${url}/${pathParams}?${queryParams}`)
+            const response = await req.json()
+            return response;
+        }
+        catch (err) {
+            console.log(err)
+        }
     }
 
     async fetchOrders(symbol: string, orders = {}, hist = false): Promise<any> {

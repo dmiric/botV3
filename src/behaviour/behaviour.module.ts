@@ -1,11 +1,12 @@
 import { Module, Logger } from '@nestjs/common';
-import { OrdersModule } from '../orders/orders.module';
+import { TradeSystemModule } from '../tradesystem/tradesystem.module';
+import { BehaviourTwoService } from './behaviour.two.service';
 import { BencBehaviourService } from './bencbehaviour.service';
 
 @Module({
-    imports: [OrdersModule],
+    imports: [TradeSystemModule],
     controllers: [],
-    providers: [BencBehaviourService, Logger],
-    exports: [BencBehaviourService],
+    providers: [BencBehaviourService, Logger, BehaviourTwoService],
+    exports: [BencBehaviourService, BehaviourTwoService],
 })
 export class BehaviourModule {}

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <title>Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@next"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@next"></script>
+  <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script id="content" type="text/x-handlebars-template">
+  <div>
+    <input list="tradeSessionsData" name="tradeSessions" id="tradeSessions">
+
+    <datalist id="tradeSessionsData">
+    \{{#each tradeSessions}}  
+      <option value="\{{id}} - \{{symbol}} - \{{timeframe}} - \{{duration}}">
+    \{{/each}}
+    </datalist>
+    \{{#with tradeSession}}
+    <table>
+      <tr>
+        <td>Timeframe</td>
+        <td>Symbol</td>
+        <td>Strategy</td>
+        <td>Buy Rules</td>
+        <td>Sell Rules</td>
+        <td>Start balance</td>
+        <td>Investment</td>
+        <td>Price Diff</td>
+        <td>Price Diff Low Rules</td>
+      </tr>
+      <tr>
+        <td id="timeframe">\{{timeframe}}</td>
+        <td id="symbol">\{{symbol}}</td>
+        <td id="strategy">\{{strategy}}</td>
+        <td id="buyrules">\{{#with buyRules}} \{{id}} \{{/with}}</td>
+        <td id="sellrules">\{{#with sellRules}} \{{id}} \{{/with}}</td>
+        <td id="startbalance">\{{startBalance}}</td>
+        <td id="investment">\{{investment}}</td>
+        <td id="pricediff">\{{priceDiff}}</td>
+        <td id="pricediff">\{{priceDiffLow}}</td>
+      </tr>
+    </table>
+    \{{/with}}
+  </div>
+  </script>
+
+  <canvas id="trades" width="400" height="100"></canvas>
+  <canvas id="prices" width="400" height="100"></canvas>
+  <canvas id="accumulated" width="400" height="100"></canvas>
+  <canvas id="orders" width="400" height="100"></canvas>
+  <div id="message" style="display: none;">{{ message }}</div>
+  <script>
+    var template = document.getElementById('content').innerText;
+    var context = JSON.parse(document.getElementById('message').innerText);
+    var templateScript = Handlebars.compile(template);
+    var app = document.getElementById('app');
+    app.innerHTML = templateScript(context);
+
+    var datalist = document.getElementById("tradeSessionsData");
+    var input = document.getElementById("tradeSessions");
+
+    input.addEventListener("keyup", function (event) {
+      if (event.which === 13) {
+        var value = input.value.split(" - ")
+        redirect(value[0]);
+      }
+    }, false);
+
+    input.addEventListener("blur", function (event) {
+      if (input.value.length > 5) {
+        var value = input.value.split(" - ")
+        redirect(value[0]);
+      }
+    }, false);
+
+    function redirect(id) {
+      window.location.href = '/report/' + id
+    }
+  </script>
+  <script>
+    var message = JSON.parse(document.getElementById('message').innerText)
+    var tradesCtx = document.getElementById('trades').getContext('2d');
+    var myChart = new Chart(tradesCtx, {
+      type: 'bar',
+      data: message.data.trades,
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        }
+      }
+    });
+
+    var pricesCtx = document.getElementById('prices').getContext('2d');
+    var myChart1 = new Chart(pricesCtx, {
+      type: 'bar',
+      data: message.data.prices,
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        },
+        plugins: {
+          zoom: {
+            // Container for pan options
+            pan: {
+              // Boolean to enable panning
+              enabled: true,
+
+              // Panning directions. Remove the appropriate direction to disable 
+              // Eg. 'y' would only allow panning in the y direction
+              mode: 'y'
+            },
+
+            // Container for zoom options
+            zoom: {
+              // Boolean to enable zooming
+              enabled: true,
+
+              // Zooming directions. Remove the appropriate direction to disable 
+              // Eg. 'y' would only allow zooming in the y direction
+              mode: 'y',
+            }
+          }
+        }
+      }
+    });
+
+    var accumulatedCtx = document.getElementById('accumulated').getContext('2d');
+    var myChart2 = new Chart(accumulatedCtx, {
+      type: 'bar',
+      data: message.data.accumulated,
+      options: {
+        scales: {
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        }
+      }
+    });
+
+    var ordersCtx = document.getElementById('orders').getContext('2d');
+    var myChart3 = new Chart(ordersCtx, {
+      type: 'bar',
+      data: message.data.orders,
+      options: {
+        scales: {
+          xAxes: [{
+            stacked: true,
+          }],
+          yAxes: [{
+            stacked: true,
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        }
+      }
+    });
+  </script>
+
+</body>
+
+</html>

@@ -1,15 +1,15 @@
 import { ObjectMeta } from "./objectmeta.model";
 
 export interface Order {
-    cid: number;
-    type: string;
-    amount: number; // should be string when sending to bfx
-    symbol: string;
-    price?: number; // should be string when sending to bfx
-    status?: string;
-    price_trailing?: number;
-    meta?: ObjectMeta;
-  }
+  cid: number;
+  type: string;
+  amount: number; // should be string when sending to bfx
+  symbol: string;
+  price?: number; // should be string when sending to bfx
+  status?: string;
+  price_trailing?: number;
+  meta?: ObjectMeta;
+}
 
 export interface ApiOrder {
     cid: number;

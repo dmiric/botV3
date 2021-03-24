@@ -3,5 +3,6 @@ export interface Period {
     emts: number,
     year: number,
     startmonth: number,
-    endmonth: number
+    endmonth: number,
+    current: boolean
 }

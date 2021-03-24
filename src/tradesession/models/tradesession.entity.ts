@@ -1,15 +1,28 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { TradeSystemRules } from '../../tradesystem/models/tradesystem.rules.entity';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, ManyToMany, JoinTable } from 'typeorm';
+import { StateMachine } from 'typeorm-state-machine'
 
+@StateMachine([
+    {
+        stateField: 'status',
+        transitions: [
+            { name: 'init', from: 'new', to: 'initialising' },
+            { name: 'activate', from: 'initialising', to: 'active' },
+            { name: 'pause', from: ['active', 'initialising'], to: 'paused' },
+            { name: 'complete', from: ['active', 'initialising', 'paused'], to: 'completed' },
+        ]
+    },
+])
 @Entity()
-export class TradeSession {
+export class TradeSession implements TradeSession {
     @PrimaryGeneratedColumn()
     id?: number;
 
-    @Column('datetime')
-    startTime: Date;
+    @Column()
+    startTime: number;
 
-    @Column('datetime', {nullable: true})
-    endTime?: Date;
+    @Column({nullable: true})
+    endTime?: number;
 
     @Column()
     status: string;
@@ -20,11 +33,29 @@ export class TradeSession {
     @Column()
     symbol: string;
 
+    @Column({nullable: true})
+    positionId?: number; // Idish actually
+
     @Column()
     startBalance: number;
 
+    @Column({nullable: true})
+    investment?: number;
+
     @Column()
     safeDistance: number;
+
+    @Column()
+    strategy: string;
+
+    @Column()
+    exchange: string;
+
+    @Column({nullable: true})
+    priceDiff?: number;
+
+    @Column({nullable: true})
+    priceDiffLow?: string;
 
     @Column({nullable: true})
     originalTrailingProfit?: number;
@@ -40,23 +71,21 @@ export class TradeSession {
 
     @Column({nullable: true})
     closePercent?: number;
+
+    @ManyToOne(() => TradeSystemRules, {eager: true})
+    buyRules: TradeSystemRules;
+
+    @ManyToOne(() => TradeSystemRules, {eager: true})
+    sellRules: TradeSystemRules;
+
+    @ManyToMany(() => TradeSystemRules, {eager: true})
+    @JoinTable()
+    salesRules?: TradeSystemRules[];
 }
-/*
-export interface Key {
-    id?: string;
-    action: string;
-    logDates?: number[];
-    trade: string;
-    timeframe?: string;
-    symbol: string;
-    indicatorOffset?: number;
-    start?: number;
-    end?: number;
-    orderlimit?: number;
-    startBalance?: number;
-    safeDistance?: number;
-    trailingProfit?: number;
-    trailingDistance?: number;
-    closePercent?: number;
-  }
-  */
+
+export interface TradeSession {
+    init?(): void;
+    activate?(): void;
+    pause?(): void;
+    complete?(): void;
+}

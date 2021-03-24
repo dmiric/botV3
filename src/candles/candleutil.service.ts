@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { candleWidth } from 'bfx-hf-util'
-import { Key } from '../interfaces/key.model';
 
 const _last = require('lodash/last')
 const _isFinite = require('lodash/isFinite')

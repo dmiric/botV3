@@ -8,7 +8,7 @@ export class ClosedTradesController {
 
     @Get()
     status(): any {
-        return this.tradeService.getClosedTrades()
+        //return this.tradeService.getClosedTrades()
     }
 
 }

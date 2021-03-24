@@ -1,14 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ParseCandlesService } from './parsecandles.service';
-import { CandleSocketService } from './candlesocket.service';
 import { HistCandlesService } from './hist/histcandles.service';
-import { KeyService } from './key.service';
 import { CandleUtilService } from './candleutil.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Candle } from './models/candle.entity';
+import { CandleDbService } from './candle.db.service';
 
 @Module({
-    imports: [],
+    imports: [TypeOrmModule.forFeature([Candle])],
     controllers: [],
-    providers: [ParseCandlesService, CandleSocketService, HistCandlesService, KeyService, CandleUtilService],
-    exports: [ParseCandlesService, CandleSocketService, HistCandlesService, KeyService, CandleUtilService]
+    providers: [ParseCandlesService, HistCandlesService, CandleUtilService, CandleDbService],
+    exports: [ParseCandlesService, HistCandlesService, CandleUtilService, CandleDbService]
 })
 export class CandlesModule { }

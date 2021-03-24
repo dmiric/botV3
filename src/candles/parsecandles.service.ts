@@ -2,9 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Candle } from '../interfaces/candle.model'
 import { Candle as CandleObj } from 'bfx-api-node-models'
 import { candleWidth } from 'bfx-hf-util'
-import { TradeSession } from 'src/tradesession/models/tradesession.entity';
-
-
+import { TradeSession } from '../tradesession/models/tradesession.entity';
 @Injectable()
 export class ParseCandlesService {
 
@@ -40,6 +38,7 @@ export class ParseCandlesService {
             candleSet = this.trimHistCandles(candleSet);
         }
 
+        candleSet[-1] = candle
         return candleSet;
     }
 

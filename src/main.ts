@@ -4,19 +4,15 @@ import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston'
 import * as winston from 'winston';
-import * as stayAwake from 'stay-awake'
 
-import { ExchangeModule } from './exchange/exchange.module';
-import { ReconnectService } from './exchange/reconnect.service'
+import { InputModule } from './input/input.module'
+import { ArgvService } from './input/argv.service'
 
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  // prevent auto sleep
-  // stayAwake.prevent(function(err, data) {
-    //console.log('%d routines are preventing sleep', data);
-  // });
-
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: WinstonModule.createLogger({
       level: 'info',
       format: winston.format.json(),
@@ -35,6 +31,13 @@ async function bootstrap() {
     })
   });
 
-  await app.listen(8080);
+  app.useStaticAssets(join(__dirname, '..', 'public'));
+  app.setBaseViewsDir(join(__dirname, '..', 'views'));
+  app.setViewEngine('hbs');
+
+  const argvService = app.select(InputModule).get(ArgvService, { strict: true })
+  const port = argvService.getPort()
+
+  await app.listen(port);
 }
 bootstrap();

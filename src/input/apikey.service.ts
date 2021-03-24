@@ -6,10 +6,13 @@ import * as os from 'os';
 import HmacSHA384 from 'crypto-js/hmac-sha384';
 import hex from 'crypto-js/enc-hex';
 import { Payload } from "src/interfaces/payload.model";
+import { ArgvService } from './argv.service'
 
 
 @Injectable()
 export class ApiKeyService {
+
+    constructor(private argvService: ArgvService) { } 
     
     private payload: Payload;
     private cryptoXlsDir = path.join(os.homedir(),'Documents','Crypto')
@@ -36,12 +39,9 @@ export class ApiKeyService {
     }
 
     public getAuthPayload(): Payload {
-        if(this.payload) {
-            return this.payload
-        }
-
+        const port = this.argvService.getPort()
         const apiKeys = this.readFile()
-        const authNonce = Date.now() * 1000 // Generate an ever increasing, single use value. (a timestamp satisfies this criteria)
+        const authNonce = Date.now() * 1000 + port // Generate an ever increasing, single use value. (a timestamp satisfies this criteria)
         const authPayload = 'AUTH' + authNonce // Compile the authentication payload, this is simply the string 'AUTH' prepended to the nonce value
         const authSig = HmacSHA384(authPayload, apiKeys[1]).toString(hex) // The authentication payload is hashed using the private key, the resulting hash is output as a hexadecimal string
         const apiKey = apiKeys[0]
@@ -61,8 +61,9 @@ export class ApiKeyService {
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     public restAuth(apiPath: string, body: any) {
+        const port = this.argvService.getPort()
         const apiKeys = this.readFile()
-        const nonce = (Date.now() * 1000).toString() // Standard nonce generator. Timestamp * 1000
+        const nonce = (Date.now() * 1000 + port).toString() // Standard nonce generator. Timestamp * 1000
         const signature = `/api/${apiPath}${nonce}${JSON.stringify(body)}` 
         // Consists of the complete url, nonce, and request body
 

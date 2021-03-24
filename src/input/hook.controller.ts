@@ -8,9 +8,9 @@ export class HookController {
   constructor(private hookService: HookService) {}
 
   @Post()
-  create(@Body() req: HookReqDto): string {    
+  async create(@Body() req: HookReqDto): Promise<string> {    
     console.log(req)
-    this.hookService.start(req)
+    await this.hookService.start(req)
     return "req";
   }
   

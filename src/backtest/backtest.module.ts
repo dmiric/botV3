@@ -1,18 +1,18 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { BehaviourModule } from '../behaviour/behaviour.module';
 import { CandlesModule } from '../candles/candles.module';
 import { InputModule } from '../input/input.module';
-import { LogModule } from '../log/log.module';
-import { OrdersModule } from '../orders/orders.module';
+import { BackTestDataSource } from './btest.datasource.service';
 import { TestDataService } from './testdata.service';
-import { TesterService } from './tester.service';
-import { IndicatorsModule } from '../indicators/indicators.module';
-
+import { BullModule } from '@nestjs/bull';
 @Module({
-    imports: [BehaviourModule, CandlesModule, forwardRef(() => OrdersModule), InputModule, LogModule, IndicatorsModule],
+    imports: [BehaviourModule, CandlesModule, InputModule, 
+        BullModule.registerQueueAsync({
+        name: 'bot'
+    })],
     controllers: [],
-    providers: [TesterService, TestDataService],
-    exports: [TesterService, TestDataService],
+    providers: [TestDataService, BackTestDataSource],
+    exports: [TestDataService, BackTestDataSource],
 
 })
 export class BacktestModule {}

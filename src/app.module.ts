@@ -1,66 +1,58 @@
+import { BacktestModule } from './backtest/backtest.module';
+import { TradeSystemModule } from './tradesystem/tradesystem.module';
 import { TradeSessionModule } from './tradesession/tradesession.module';
-import { StopController } from './input/stop.controller';
 import { ReconnectService } from './exchange/reconnect.service';
 import { StatusController } from './input/status.controller';
-import { HookService } from './input/hook.service';
-import { HookController } from './input/hook.controller';
-import { TradeService } from './exchange/trade.service';
 import { ExchangeModule } from './exchange/exchange.module';
-import { LogModule } from './log/log.module';
-import { BencBehaviourService } from './behaviour/bencbehaviour.service';
 import { BehaviourModule } from './behaviour/behaviour.module';
-import { LogService } from './log/log.service';
-import { CandleUtilService } from './candles/candleutil.service';
-import { OrderCyclesService } from './orders/ordercycles.service';
-import { OrderCycleService } from './orders/ordercycle.service';
-import { KeyService } from './candles/key.service';
-import { OrdersModule } from './orders/orders.module';
 import { InputModule } from './input/input.module';
-import { OrderService } from './orders/order.service';
-import { OrdersService } from './orders/orders.service';
 import { CandlesModule } from './candles/candles.module';
 import { Module, Logger } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClosedTradesController } from './input/closedtrades.controller';
+import { OrderModule } from './order/order.module';
+import { BullModule } from '@nestjs/bull';
+import { ArgvService } from './input/argv.service';
 
 
 @Module({
   imports: [
-    TradeSessionModule,
+    BacktestModule,
     TypeOrmModule.forRoot({
       type: 'sqlite',
-      database: 'db',
+      database: 'botV3.db',
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true, // this needs to be removed in production
     }),
+    BullModule.forRootAsync({
+      imports: [InputModule],
+      useFactory: async (argvService: ArgvService) => ({
+        redis: {
+          host: 'localhost',
+          port: 6379,
+        },
+        prefix: argvService.getSymbol() + '-' + argvService.getPort(),
+        settings: {
+          maxStalledCount: 0
+        }
+      }),
+      inject: [ArgvService],
+    }),
+    TradeSystemModule,
+    TradeSessionModule,
+    OrderModule,
     ExchangeModule,
-    LogModule,
     BehaviourModule,
-    OrdersModule,
     InputModule,
     CandlesModule
   ],
-  controllers: [
-    StopController,
-    StatusController,
-    HookController, AppController, ClosedTradesController],
+  controllers: [StatusController, AppController, ClosedTradesController],
   providers: [
-    ReconnectService,
     Logger,
-    HookService,
-    TradeService,
-    BencBehaviourService,
-    LogService,
-    CandleUtilService,
-    OrderCyclesService,
-    OrderCycleService,
-    KeyService,
-    BencBehaviourService,
-    OrderService,
-    OrdersService,
-    AppService],
+    AppService
+  ],
 })
 export class AppModule {
 
