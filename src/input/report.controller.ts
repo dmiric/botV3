@@ -9,8 +9,15 @@ export class ReportController {
 
     @Get(':tradeSessionId')
     @Render('report')
-    async root(@Param() params: ReportReqDto): Promise<any> {
+    async report(@Param() params: ReportReqDto): Promise<any> {
         const message = await this.reportService.report(params.tradeSessionId)
+        return { message: JSON.stringify(message) };
+    }
+
+    @Get()
+    @Render('report')
+    async report2(): Promise<any> {
+        const message = await this.reportService.report()
         return { message: JSON.stringify(message) };
     }
 

@@ -16,7 +16,7 @@ export class StrategyTwoService {
 
     private candleSet: Candle[] = []
     private lastBuyCandle: Candle
-    private wallet = { USD: 50000 }
+    private wallet = { USD: 0 }
     private unfilledSellOrders = []
     private balance = {
         balance: null,
@@ -81,7 +81,7 @@ export class StrategyTwoService {
                         sellOrder.candleOpen = currentTick.open
                         sellOrder.candleClose = currentTick.close
                         await this.sellOrderBLService.updateSellOrder(sellOrder)
-                        await new Promise(r => setTimeout(r, 30));
+                        await new Promise(r => setTimeout(r, 30))
                         this.socketsService.send('orderSocket', pl)
                         this.unfilledSellOrders.splice(index, 1)
                     }
@@ -89,12 +89,14 @@ export class StrategyTwoService {
             }
         }
 
-        if(currentCandle.mts == 1613995200000) {
-            const a = 1
-        }
-
         if (this.lastBuyCandle == currentCandle) {
             return
+        }
+
+        if (currentTick.hasOwnProperty("ma")) {
+            if (currentTick.close > currentTick.ma) {
+                return
+            }
         }
 
         // create buy order
@@ -165,7 +167,7 @@ export class StrategyTwoService {
         const requiredReserve = this.calcReserve(tradeSession)
         const potentialBalance = tradeSession.startBalance - requiredReserve - sellTotal.total
 
-        if(potentialBalance <= 0) {
+        if (potentialBalance <= 0) {
             this.balance.reserveAmount = requiredReserve + potentialBalance
             this.balance.balance = 0
         } else {
@@ -253,11 +255,16 @@ export class StrategyTwoService {
         // wu: wallet snapshot
         if (data[1] == 'ws') {
             await this.updateUnfilledSellOrders(tradeSession)
+            for (const entry of data[2]) {
+                if (entry[0] == 'exchange') {
+                    this.wallet[entry[1]] = entry[4]
+                }
+            }
         }
 
         // wu: wallet update
         if (data[1] == 'wu') {
-            if (data[2][0] == 'exchange' && data[2][1] == 'USD') {
+            if (data[2][0] == 'exchange') {
                 this.wallet[data[2][1]] = data[2][4]
             }
         }

@@ -71,7 +71,8 @@ export class HookService {
             strategy: req.strategy,
             priceDiff: req.buy.priceDiff ? req.buy.priceDiff : null,
             priceDiffLow: req.buy.priceDiffLow ? JSON.stringify(req.buy.priceDiffLow) : null,
-            exchange: req.exchange
+            exchange: req.exchange,
+            ma: req.buy.ma ? req.buy.ma : null
         }
 
         if (salesRules != null) {
@@ -122,6 +123,10 @@ export class HookService {
 
             if (buy.hasOwnProperty('investment')) {
                 tradeSession.investment = buy.investment
+            }
+
+            if (buy.hasOwnProperty('ma')) {
+                tradeSession.ma = buy.ma
             }
 
             if (buy.hasOwnProperty('buyRules')) {

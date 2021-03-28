@@ -18,9 +18,15 @@ export class StrategyTwoReportService {
         private readonly candleDbService: CandleDbService
     ) { }
 
-    async report(tradeSessionId: number): Promise<any> {
+    async report(tradeSessionId?: number): Promise<any> {
         dayjs.extend(utc)
-        const tradeSession = await this.tradeSessionBLService.findById(tradeSessionId)
+
+        let tradeSession
+        if (tradeSessionId) {
+            tradeSession = await this.tradeSessionBLService.findById(tradeSessionId)
+        } else {
+            tradeSession = await this.tradeSessionBLService.findLast()
+        }
 
         const startYear = dayjs.utc(tradeSession.startTime).year()
         const startMonth = dayjs.utc(tradeSession.startTime).month() + 1
@@ -129,7 +135,7 @@ export class StrategyTwoReportService {
                 },
                 {
                     label: "Lowest Low Price",
-                    borderColor: "#cc7178",
+                    borderColor: "#b3d89c",
                     type: "line",
                     fill: false,
                     data: []
@@ -161,6 +167,7 @@ export class StrategyTwoReportService {
                 }
             ]
         }
+
         for (let i = 1; i < 30; i++) {
             orders.datasets.push({
                 label: i + '%',
@@ -215,6 +222,7 @@ export class StrategyTwoReportService {
                 .addSelect("ROUND(MIN(close), 4)", "minPrice")
                 .addSelect("ROUND(MIN(low), 4)", "lowPrice")
                 .where("mts >= :startTime AND mts <= :endTime", { startTime: period[1], endTime: period[2] })
+                .andWhere("symbol = :symbol", { symbol: tradeSession.symbol })
                 .getRawOne()
 
             const buyOrderQB7 = this.buyOrderService.getQueryBuilder()
@@ -271,7 +279,7 @@ export class StrategyTwoReportService {
             trades.datasets[0].data.push(sell.total - buy.total) // Position
             trades.datasets[1].data.push(sellAllTotal - buy.total) // Max Profit +
             trades.datasets[2].data.push(tradeSession.startBalance - buy.total - buy.fees + sell.total - sell.fees) // Balance
-            
+
             prices.datasets[0].data.push(sellAllTotal / sellAllTotalAmount) // Sell price +
             prices.datasets[1].data.push(buyPrice.total) // Buy price +            
             prices.datasets[2].data.push(periodPrice.maxPrice) // Period Max Price +
@@ -281,6 +289,7 @@ export class StrategyTwoReportService {
             prices.datasets[6].data.push(candles.avgPrice) // Avg Price +
             prices.datasets[7].data.push(candles.minPrice) // Min Price +
             prices.datasets[8].data.push(candles.lowPrice) // Low Price +
+            prices.datasets[9].data.push(candles.ma10) // Ma10 Price +
 
             accumulated.datasets[0].data.push(buy.amount - sell.amount) // Amount
             orders.datasets[0].data.push(periodPrice.count) // Number of orders
@@ -323,7 +332,7 @@ export class StrategyTwoReportService {
             if (!dataset) {
                 continue
             }
-            if (dataset.hasOwnProperty('data') && dataset.data.reduce((a, b) => a + b) == 0) {
+            if (dataset.hasOwnProperty('data') && dataset.data.length > 0 && dataset.data.reduce((a, b) => a + b) == 0) {
                 orders.datasets.splice(i, 1);
                 this.cleanDips(orders)
             }

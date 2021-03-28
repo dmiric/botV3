@@ -13,7 +13,8 @@ export class HookReqDto {
     investment: number;
     safeDistance: number;
     priceDiff: number;
-    priceDiffLow?: string;    
+    priceDiffLow?: string;
+    ma?: number;
   }
   sell: {
     sellRules: number;

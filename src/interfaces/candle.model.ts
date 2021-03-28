@@ -5,4 +5,5 @@ export interface Candle {
     high: number;
     low: number;
     volume: number;
+    ma?: number;
 }

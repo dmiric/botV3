@@ -72,6 +72,9 @@ export class TradeSession implements TradeSession {
     @Column({nullable: true})
     closePercent?: number;
 
+    @Column({nullable: true})
+    ma?: number;
+
     @ManyToOne(() => TradeSystemRules, {eager: true})
     buyRules: TradeSystemRules;
 

@@ -1,9 +1,13 @@
-import { Entity, Column, PrimaryColumn, Index } from 'typeorm';
+import { Entity, Column, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 
 @Entity()
 export class Candle  {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
+    id?: number;
+
+    @Column()
+    @Index()
     mts: number;
 
     @Column()

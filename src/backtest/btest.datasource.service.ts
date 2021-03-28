@@ -7,6 +7,7 @@ import { HistCandlesService } from "src/candles/hist/histcandles.service";
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import { CandleDbService } from "src/candles/candle.db.service";
+import { candleWidth } from 'bfx-hf-util'
 
 
 @Injectable()
@@ -100,16 +101,43 @@ export class BackTestDataSource {
         if (socket == 'candleSocket') {
             const endTime = tradeSession.endTime ? tradeSession.endTime : Date.now()
             await this.histCandlesService.prepareHistData(tradeSession)
-            
-            const candles = await this.candleDbService.getQueryBuilder()
+
+            const c = this.candleDbService.getQueryBuilder()
                 .select('*')
-                .where('mts >= :startTime AND mts <= :endTime', {startTime: tradeSession.startTime, endTime: endTime})
-                .andWhere('symbol = :symbol', { symbol: tradeSession.symbol} )
-                .andWhere('timeframe = :timeframe', {timeframe: tradeSession.timeframe} )
-                .getRawMany()
+                .where('mts >= :startTime AND mts <= :endTime', { startTime: tradeSession.startTime, endTime: endTime })
+                .andWhere('symbol = :symbol', { symbol: tradeSession.symbol })
+                .andWhere('timeframe = :timeframe', { timeframe: tradeSession.timeframe })
+
+            const candles = await c.getRawMany()
+
+            let ma = null
+            if (tradeSession.ma != null) {
+                const cw = candleWidth(tradeSession.timeframe)
+                const startTime = tradeSession.startTime - (cw * tradeSession.ma)
+
+                const avg = this.candleDbService.getQueryBuilder()
+                    .select('*')
+                    .where('mts >= :startTime AND mts <= :endTime', { startTime: startTime, endTime: endTime })
+                    .andWhere('symbol = :symbol', { symbol: tradeSession.symbol })
+                    .andWhere('timeframe = :timeframe', { timeframe: tradeSession.timeframe })
+                avg.addSelect("AVG(close) OVER(ORDER BY mts ROWS BETWEEN " + tradeSession.ma + " PRECEDING AND CURRENT ROW )", "ma")
+                
+                ma = await avg.getRawMany()
+            }
 
             for (const candle of candles) {
-                const c = [0, [candle.mts, candle.open, candle.close, candle.high, candle.low, candle.volume]]
+                const c = [0, [candle.mts, candle.open, candle.close, candle.high, candle.low, candle.volume, null]]
+
+                if(ma != null) {
+                    for (const [index, m] of ma.entries()) {
+                        if(m.mts == candle.mts) {
+                            c[1][6] = m.ma
+                            ma.splice(0, index); 
+                            break
+                        }
+                    }
+                }
+                
                 await this.botQueue.add(
                     'candles',
                     { message: JSON.stringify(c) },
@@ -121,7 +149,7 @@ export class BackTestDataSource {
                 'candles',
                 { message: 'end' },
                 { removeOnComplete: true, priority: 10 }
-                
+
             )
         }
 
