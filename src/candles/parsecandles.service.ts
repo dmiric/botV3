@@ -5,10 +5,16 @@ import { TradeSession } from '../tradesession/models/tradesession.entity';
 @Injectable()
 export class ParseCandlesService {
 
-    private keepHistCandles = 2000
+    private keepHistCandles = null
+    private lastMA = null
 
     handleCandleStream(data: number[][][], tradeSession: TradeSession, candleSet: Candle[]): Candle[] {
         const candleWidthVal = candleWidth(tradeSession.timeframe)
+
+        if(this.keepHistCandles == null || this.lastMA != tradeSession.ma) {
+            this.lastMA = tradeSession.ma ? tradeSession.ma : 5000
+            this.keepHistCandles = this.lastMA + 1
+        }
 
         const set = this.parseSet(data)
         if(set.length > 0) {

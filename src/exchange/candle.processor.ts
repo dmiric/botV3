@@ -18,7 +18,7 @@ export class CandleProcessor {
     @OnQueueFailed()
     @OnQueueStalled()
     @OnQueueWaiting()
-    async onE(job: Job): Promise<void> {
+    async on(job: Job): Promise<void> {
         console.log(`Processing job ${job.id} of type ${job.name} with data ${job.data}...`,);
         console.log(job)
     }

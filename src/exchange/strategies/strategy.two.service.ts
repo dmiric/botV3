@@ -49,11 +49,20 @@ export class StrategyTwoService {
         }
 
         this.candleSet = this.parseCandlesService.handleCandleStream(data, tradeSession, this.candleSet)
+
         const currentCandle: Candle = this.candleSet[this.candleSet.length - 1]
         const currentTick: Candle = this.candleSet[-1]
 
         if (!currentCandle || !currentTick) {
             return
+        }
+
+        if (tradeSession.ma != null && !currentTick.hasOwnProperty("ma")) {
+            if (this.candleSet.length > tradeSession.ma) {
+                const calcMACandleSet = this.candleSet
+                delete calcMACandleSet[-1]
+                currentTick.ma = this.calcMA(tradeSession, calcMACandleSet)
+            }
         }
 
         if (this.unfilledSellOrders.length > 0) {
@@ -133,6 +142,17 @@ export class StrategyTwoService {
             this.socketsService.send('orderSocket', pl)
         }
         this.candleSet = []
+    }
+
+    private calcMA(tradeSession: TradeSession, candleSet: Candle[]): number {
+        const maCandleSet = candleSet.slice(Math.max(candleSet.length - tradeSession.ma, 0))
+
+        let ma = 0
+        for (const candle of maCandleSet) {
+            ma = ma + candle.close
+        }
+
+        return ma / tradeSession.ma
     }
 
     private async updateUnfilledSellOrders(tradeSession: TradeSession): Promise<void> {
