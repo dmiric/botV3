@@ -10,4 +10,4 @@ import { TradeSystemRulesService } from './tradesystem.rules.service';
     exports: [TradeSystemRulesService]
 })
 
-export class TradeSystemModule { }
+export class TradeSystemModule {}

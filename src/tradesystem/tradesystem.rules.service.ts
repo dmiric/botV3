@@ -4,13 +4,17 @@ import { Repository } from 'typeorm';
 import { TradeSystemRules } from './models/tradesystem.rules.entity';
 import { UpdateResult, DeleteResult } from  'typeorm';
 import { TradeSession } from 'src/tradesession/models/tradesession.entity';
+import * as SYSTEM_RULES_DATA from '../../trade_system_rules.json'
+
 
 @Injectable()
 export class TradeSystemRulesService {
 
     constructor(
         @InjectRepository(TradeSystemRules) private readonly repository: Repository<TradeSystemRules>
-    ) { }
+    ) { 
+        this.populateData()
+    }
 
     async getNextTradeSystemGroup(tradeSession: TradeSession, previous: number): Promise<number> {
         const tradeSystemValues = JSON.parse(tradeSession.buyRules.rules)
@@ -38,5 +42,15 @@ export class TradeSystemRulesService {
 
     async delete(id: number): Promise<DeleteResult> {
         return await this.repository.delete(id)
+    }
+
+    async populateData(): Promise<void> {
+        const rulesData = Object.keys(SYSTEM_RULES_DATA).map(e=>SYSTEM_RULES_DATA[e]);
+        const rules = await this.findAll()
+        if(rules.length == 0) {
+            for (const rule of rulesData) {
+                await this.create(rule)
+            }
+        }
     }
 }
