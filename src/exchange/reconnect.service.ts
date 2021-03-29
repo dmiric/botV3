@@ -1,8 +1,8 @@
 import { Injectable, Inject, Logger, LoggerService } from '@nestjs/common'
 import { RestService } from './rest.service'
 import { TradeService } from './trade.service'
-import { ArgvService } from 'src/input/argv.service'
 import { TradeSessionBLService } from 'src/tradesession/tradesession.bl.service'
+import { ConfigService } from 'src/config/config.service'
 
 @Injectable()
 export class ReconnectService {
@@ -10,7 +10,7 @@ export class ReconnectService {
     constructor(
         private restService: RestService,
         private tradeService: TradeService,
-        private argvService: ArgvService,
+        private config: ConfigService,
         @Inject(Logger) private readonly logger: LoggerService,
         private readonly tradeSessionBLService: TradeSessionBLService) {
     }
@@ -18,7 +18,7 @@ export class ReconnectService {
     async reConnect(): Promise<any> {
         // prevent signals while we are setting up the state
         this.tradeService.setStarting(true)
-        const configSymbol = this.argvService.getSymbol()
+        const configSymbol = this.config.getSymbol()
 
         const positions = await this.restService.fetchActivePositions()
         this.logger.log(positions)

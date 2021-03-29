@@ -14,31 +14,39 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClosedTradesController } from './input/closedtrades.controller';
 import { OrderModule } from './order/order.module';
 import { BullModule } from '@nestjs/bull';
-import { ArgvService } from './input/argv.service';
+import { ConfigService } from './config/config.service';
+import { ConfigModule } from './config/config.module'
+
+import { SqliteConnectionOptions } from 'typeorm/driver/sqlite/SqliteConnectionOptions';
 
 
 @Module({
   imports: [
     BacktestModule,
-    TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: 'botV3.db',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true, // this needs to be removed in production
+    ConfigModule,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        type: 'sqlite',
+        database: configService.getConfigDir() + '/botV3.db',
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: configService.isProduction() ? false : true,
+      } as SqliteConnectionOptions),
+      inject: [ConfigService],
     }),
     BullModule.forRootAsync({
-      imports: [InputModule],
-      useFactory: async (argvService: ArgvService) => ({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
         redis: {
           host: 'localhost',
           port: 6379,
         },
-        prefix: argvService.getSymbol() + '-' + argvService.getPort(),
+        prefix: configService.getName(),
         settings: {
           maxStalledCount: 0
         }
       }),
-      inject: [ArgvService],
+      inject: [ConfigService],
     }),
     TradeSystemModule,
     TradeSessionModule,

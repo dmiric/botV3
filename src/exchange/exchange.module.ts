@@ -14,10 +14,10 @@ import { CandleProcessor } from './candle.processor'
 import { SocketFactory } from './socket.factory'
 import { StrategyFactory } from './strategy.factory'
 import { StrategyTwoReportService } from './reports/strategy.two.report.service'
-// import { ArgvService } from 'src/input/argv.service'
+import { ConfigModule } from 'src/config/config.module'
 
 @Module({
-    imports: [BehaviourModule, CandlesModule, forwardRef(() => InputModule), TradeSessionModule, OrderModule,
+    imports: [BehaviourModule, ConfigModule, CandlesModule, forwardRef(() => InputModule), TradeSessionModule, OrderModule,
         BullModule.registerQueueAsync({
             name: 'bot'
         })
@@ -30,17 +30,3 @@ import { StrategyTwoReportService } from './reports/strategy.two.report.service'
 })
 
 export class ExchangeModule { }
-/*
-BullModule.registerQueueAsync({
-    imports: [InputModule],
-    useFactory: async (argvService: ArgvService) => ({
-        name: 'trade-' + argvService.getSymbol() + '-' + argvService.getPort()
-    })
-}, {
-    imports: [InputModule],
-    useFactory: async (argvService: ArgvService) => ({
-        name: 'candle-' + argvService.getSymbol() + '-' + argvService.getPort()
-    }),
-    inject: [ArgvService],
-})
-*/

@@ -5,8 +5,8 @@ import { AppModule } from './app.module'
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston'
 import * as winston from 'winston';
 
-import { InputModule } from './input/input.module'
-import { ArgvService } from './input/argv.service'
+import { ConfigService } from './config/config.service'
+import { ConfigModule } from './config/config.module'
 
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
@@ -35,8 +35,8 @@ async function bootstrap() {
   app.setBaseViewsDir(join(__dirname, '..', 'views'));
   app.setViewEngine('hbs');
 
-  const argvService = app.select(InputModule).get(ArgvService, { strict: true })
-  const port = argvService.getPort()
+  const config = app.select(ConfigModule).get(ConfigService, { strict: true })
+  const port = config.getPort()
 
   await app.listen(port);
 }
