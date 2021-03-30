@@ -83,7 +83,19 @@
     }, false);
 
     function redirect(id) {
-      window.location.href = '/report/' + id
+      var path = window.location.pathname.split("/")
+      delete path[0]
+      var url = ''
+      var done = false
+      path.forEach(function (el) {
+        if (el != 'report' && !done) {
+          url = url + '/' + el
+        }
+        if (el == 'report') {
+          done = true
+        }
+      });
+      window.location.href = url + 'report/' + id
     }
   </script>
   <script>
