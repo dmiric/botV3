@@ -95,7 +95,9 @@
           done = true
         }
       });
-      window.location.href = url + 'report/' + id
+      var p = "/" + url + 'report/' + id
+      window.location.href = p
+      return false;
     }
   </script>
   <script>
