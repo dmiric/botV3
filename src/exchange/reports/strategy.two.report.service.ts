@@ -289,7 +289,6 @@ export class StrategyTwoReportService {
             prices.datasets[6].data.push(candles.avgPrice) // Avg Price +
             prices.datasets[7].data.push(candles.minPrice) // Min Price +
             prices.datasets[8].data.push(candles.lowPrice) // Low Price +
-            prices.datasets[9].data.push(candles.ma10) // Ma10 Price +
 
             accumulated.datasets[0].data.push(buy.amount - sell.amount) // Amount
             orders.datasets[0].data.push(periodPrice.count) // Number of orders
