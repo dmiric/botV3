@@ -34,13 +34,13 @@ export class StrategyTwoReportService {
 
         const date1 = dayjs.utc(tradeSession.startTime)
         const date2 = dayjs.utc(tradeSession.endTime)
-        const diff = date2.diff(date1, 'week')
+        const diff = date2.diff(date1, 'day')
 
         const periods = []
         periods.push(["1-" + startMonth + '-' + startYear, date1.valueOf()])
 
         for (let m = 1; m <= diff; m++) {
-            const next = dayjs.utc(date1).add(m, 'week')
+            const next = dayjs.utc(date1).add(m, 'day')
             periods[m - 1] = [periods[m - 1][0], periods[m - 1][1], next.valueOf()]
             const nextMonth = dayjs.utc(next).month() + 1
             const nextYear = dayjs.utc(next).year()

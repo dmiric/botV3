@@ -163,7 +163,7 @@ export class StrategyTwoService {
             .addSelect("bo.price", "price")
             .addSelect("bo.tradeSystemGroup", "priceDiff")
             .addSelect("bo.amount", "amount")
-            .addSelect("ROUND(SUM(bo.amount*bo.price))", "total")
+            //.addSelect("ROUND(SUM(bo.amount*bo.price))", "total")
             .innerJoin("SellOrder.buyOrder", "bo")
             .where("SellOrder.gid = :gid", { gid: tradeSession.id })
             .andWhere("bo.status = :status1", { status1: "filled" })
