@@ -8,6 +8,13 @@
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@next"></script>
   <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+  <!-- CSS Reset -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
+  <!-- Milligram CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.1/milligram.css">
 </head>
 
 <body>
@@ -24,6 +31,7 @@
     </datalist>
     \{{#with tradeSession}}
     <table>
+      <thead>
       <tr>
         <td>Timeframe</td>
         <td>Symbol</td>
@@ -36,6 +44,8 @@
         <td>Price Diff Low Rules</td>
         <td>MA</td>
       </tr>
+      </thead>
+      <tbody>
       <tr>
         <td id="timeframe">\{{timeframe}}</td>
         <td id="symbol">\{{symbol}}</td>
@@ -48,15 +58,55 @@
         <td id="pricediffLow">\{{priceDiffLow}}</td>
         <td id="ma">\{{ma}}</td>
       </tr>
+      </tbody>
     </table>
     \{{/with}}
   </div>
-  </script>
+
+
+  
 
   <canvas id="trades" width="400" height="100"></canvas>
   <canvas id="prices" width="400" height="100"></canvas>
   <canvas id="accumulated" width="400" height="100"></canvas>
   <canvas id="orders" width="400" height="100"></canvas>
+
+
+  <table>
+    <caption>Orders</caption>
+    <thead>
+    <tr>
+      <td>Buy DateTime</td>
+      <td>Buy Status</td>
+      <td>Buy Price</td>      
+      <td>Buy Amount</td>
+      <td>Buy Candle Size</td>
+      <td> | </td>
+      <td>Sell DateTime</td>
+      <td>Sell Status</td>
+      <td>Sell Amount</td>
+      <td>Sell Price</td>     
+    </tr>
+    </thead>
+    <tbody>
+    \{{#each sellOrders}}
+    <tr>
+      <td>\{{buyTime}}</td>
+      <td>\{{bo_status}}</td>
+      <td>\{{buyPrice}}</td>      
+      <td>\{{bo_amount}}</td>
+      <td>\{{bo_tradeSystemGroup}}</td>     
+      <td> | </td>
+      <td>\{{sellTime}}</td>
+      <td>\{{status}}</td>
+      <td>\{{amount}}</td>
+      <td>\{{sellPrice}}</td>      
+    </tr>
+    \{{/each}}
+    </tbody>
+    </table>
+</script>
+
   <div id="message" style="display: none;">{{ message }}</div>
   <script>
     var template = document.getElementById('content').innerText;
@@ -99,8 +149,7 @@
       window.location.href = p
       return false;
     }
-  </script>
-  <script>
+
     var message = JSON.parse(document.getElementById('message').innerText)
     var tradesCtx = document.getElementById('trades').getContext('2d');
     var myChart = new Chart(tradesCtx, {
@@ -131,23 +180,12 @@
         },
         plugins: {
           zoom: {
-            // Container for pan options
             pan: {
-              // Boolean to enable panning
               enabled: true,
-
-              // Panning directions. Remove the appropriate direction to disable 
-              // Eg. 'y' would only allow panning in the y direction
               mode: 'y'
             },
-
-            // Container for zoom options
             zoom: {
-              // Boolean to enable zooming
               enabled: true,
-
-              // Zooming directions. Remove the appropriate direction to disable 
-              // Eg. 'y' would only allow zooming in the y direction
               mode: 'y',
             }
           }

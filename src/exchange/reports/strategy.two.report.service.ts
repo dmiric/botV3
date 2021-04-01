@@ -6,6 +6,7 @@ import utc from 'dayjs/plugin/utc'
 import { BuyOrderService } from 'src/order/buyorder.service';
 import { SellOrderService } from 'src/order/sellorder.service';
 import { CandleDbService } from 'src/candles/candle.db.service';
+import { TradeSession } from 'src/tradesession/models/tradesession.entity';
 
 
 @Injectable()
@@ -46,8 +47,10 @@ export class StrategyTwoReportService {
             periods.push([m + 1 + "-" + nextMonth + '-' + nextYear, next.valueOf()])
         }
 
+        // periods.push(["L", periods[periods.length-1][2]], Date.now())
+
         // removes last we make one more so we can get full data
-        periods.pop()
+        // periods.pop()
 
         const trades = {
             labels: [],
@@ -184,94 +187,20 @@ export class StrategyTwoReportService {
         const sellRules = JSON.parse(tradeSession.sellRules.rules)
 
         for (const [pi, period] of periods.entries()) {
-            // diff
-            const buyOrderQB = this.buyOrderService.getQueryBuilder()
-            const buy = await buyOrderQB
-                .select("ROUND(SUM(amount*price))", "total")
-                .addSelect("ROUND(SUM(amount*price) * 0.002)", "fees")
-                .addSelect("ROUND(SUM(amount), 4)", "amount")
-                .where("candleMts > :startTime AND candleMts < :endTime", { startTime: tradeSession.startTime, endTime: period[2] })
-                .andWhere("gid = :gid", { gid: tradeSession.id })
-                .andWhere("status = :status", { status: "filled" })
-                .getRawOne()
-
-            const buyOrderQB2 = this.buyOrderService.getQueryBuilder()
-            const buyPrice = await buyOrderQB2
-                .select("ROUND(SUM(amount*price)/SUM(amount), 4)", "total")
-                .where("candleMts > :startTime AND candleMts < :endTime", { startTime: tradeSession.startTime, endTime: period[2] })
-                .andWhere("gid = :gid", { gid: tradeSession.id })
-                .andWhere("status = :status", { status: "filled" })
-                .getRawOne()
-
-            const buyOrderQB4 = this.buyOrderService.getQueryBuilder()
-            const periodPrice = await buyOrderQB4
-                .select("ROUND(SUM(price*amount), 4)", "avgPrice")
-                .addSelect("ROUND(MAX(price), 4)", "maxPrice")
-                .addSelect("ROUND(MIN(price), 4)", "minPrice")
-                .addSelect("SUM(amount)", "amount")
-                .addSelect("COUNT(id)", "count")
-                .where("candleMts > :startTime AND candleMts < :endTime", { startTime: period[1], endTime: period[2] })
-                .andWhere("gid = :gid", { gid: tradeSession.id })
-                .andWhere("status = :status", { status: "filled" })
-                .getRawOne()
-
-            const candleQB = this.candleDbService.getQueryBuilder()
-            const candles = await candleQB
-                .select("ROUND(AVG(close), 4)", "avgPrice")
-                .addSelect("ROUND(MAX(close), 4)", "maxPrice")
-                .addSelect("ROUND(MIN(close), 4)", "minPrice")
-                .addSelect("ROUND(MIN(low), 4)", "lowPrice")
-                .where("mts >= :startTime AND mts <= :endTime", { startTime: period[1], endTime: period[2] })
-                .andWhere("symbol = :symbol", { symbol: tradeSession.symbol })
-                .getRawOne()
-
-            const buyOrderQB7 = this.buyOrderService.getQueryBuilder()
-            const periodDips = await buyOrderQB7
-                .select("COUNT( tradeSystemGroup )", "count")
-                .addSelect("tradeSystemGroup", "percent")
-                .where("candleMts > :startTime AND candleMts < :endTime", { startTime: period[1], endTime: period[2] })
-                .andWhere("gid = :gid", { gid: tradeSession.id })
-                .andWhere("status = :status", { status: "filled" })
-                .groupBy("tradeSystemGroup")
-                .getRawMany()
-
-            const sellOrderQB = this.sellOrderService.getQueryBuilder()
-            const sell = await sellOrderQB
-                .select("ROUND(SUM(amount*price) - SUM(amount*price)*2 )", "total")
-                .addSelect("ROUND((SUM(amount*price) - SUM(amount*price)*2) * 0.002 )", "fees")
-                .addSelect("ROUND(SUM( amount-(amount*2) ), 4)", "amount")
-                .where("candleMts > :startTime AND candleMts < :endTime", { startTime: tradeSession.startTime, endTime: period[2] })
-                .andWhere("gid = :gid", { gid: tradeSession.id })
-                .andWhere("status = :status", { status: "filled" })
-                .getRawOne()
-
-            /*    
-            const sellOrderQB2 = this.sellOrderService.getQueryBuilder()
-            const sellAll = await sellOrderQB2
-                .select("ROUND( SUM(SellOrder.amount*SellOrder.price) - SUM(SellOrder.amount*SellOrder.price)*2 )", "total")
-                .addSelect("ROUND( SUM(SellOrder.amount*SellOrder.price) - SUM(SellOrder.amount*SellOrder.price)*2 ) * 0.002", "fees")
-                .addSelect("ROUND(AVG(SellOrder.price), 4)", "sellPrice")
-                .innerJoinAndSelect("SellOrder.buyOrder", "bo", "bo.id = SellOrder.buyOrder")
-                .where("bo.candleMts > :startTime AND bo.candleMts < :endTime", { startTime: tradeSession.startTime, endTime: period[2] })
-                .andWhere("SellOrder.gid = :gid", { gid: tradeSession.id })
-                .andWhere("bo.status = :status", { status: "filled" })
-                .getRawOne()
-            */
-
-            const sellOrderQB3 = this.sellOrderService.getQueryBuilder()
-            const sellAll2 = await sellOrderQB3
-                .select("bo.price", "price")
-                .addSelect("bo.tradeSystemGroup", "priceDiff")
-                .addSelect("bo.amount", "amount")
-                .innerJoinAndSelect("SellOrder.buyOrder", "bo", "bo.id = SellOrder.buyOrder")
-                .where("bo.candleMts > :startTime AND bo.candleMts < :endTime", { startTime: tradeSession.startTime, endTime: period[2] })
-                .andWhere("SellOrder.gid = :gid", { gid: tradeSession.id })
-                .andWhere("bo.status = :status", { status: "filled" })
-                .getRawMany()
+            if(!period[2]) {
+                period[2] = tradeSession.endTime
+            }
+            const buy = await this.buy(tradeSession, period);
+            const buyPrice = await this.buyPrice(tradeSession, period);
+            const periodPrice = await this.periodPrice(period, tradeSession);
+            const candles = await this.candles(period, tradeSession);
+            const periodDips = await this.periodDips(period, tradeSession);
+            const sell = await this.sell(tradeSession, period);
+            const sellAll = await this.sellAll(tradeSession, period);
 
             let sellAllTotal = 0
             let sellAllTotalAmount = 0
-            for (const sa of sellAll2) {
+            for (const sa of sellAll) {
                 sellAllTotal = sellAllTotal + (sa.price + sa.price * sellRules[sa.priceDiff] * sa.priceDiff / 10000) * sa.amount
                 sellAllTotalAmount = sellAllTotalAmount + sa.amount
             }
@@ -308,7 +237,23 @@ export class StrategyTwoReportService {
 
         const cleanOrders = this.cleanDips(orders)
 
-        const tradeSessionQB = this.tradeSessionBLService.getQueryBuilder()
+        const sessions = await this.tradeSessions(tradeSession);
+
+        const buyOrders = await this.buyOrders(tradeSession);
+        const sellOrders = await this.sellOrders(tradeSession);
+
+        return {
+            data: { trades: trades, prices: prices, accumulated: accumulated, orders: cleanOrders },
+            tradeSession: tradeSession,
+            tradeSessions: sessions,
+            buyOrders: buyOrders,
+            sellOrders: sellOrders
+        }
+
+    }
+
+    private async tradeSessions(tradeSession: any) {
+        const tradeSessionQB = this.tradeSessionBLService.getQueryBuilder();
         const sessions = await tradeSessionQB
             .select("*")
             .addSelect("(endTime-startTime) / 1000 / 60 / 60 / 24 / 30", "duration")
@@ -316,14 +261,124 @@ export class StrategyTwoReportService {
             .andWhere("status = :status", { status: "completed" })
             .orderBy("id", "DESC")
             .limit(20)
-            .getRawMany()
+            .getRawMany();
+        return sessions;
+    }
 
-        return {
-            data: { trades: trades, prices: prices, accumulated: accumulated, orders: cleanOrders },
-            tradeSession: tradeSession,
-            tradeSessions: sessions
-        }
+    private async buy(tradeSession: any, period: any) {
+        const buyOrderQB = this.buyOrderService.getQueryBuilder();
+        const buy = await buyOrderQB
+            .select("ROUND(SUM(amount*price))", "total")
+            .addSelect("ROUND(SUM(amount*price) * 0.002)", "fees")
+            .addSelect("ROUND(SUM(amount), 4)", "amount")
+            .where("candleMts > :startTime AND candleMts < :endTime", { startTime: tradeSession.startTime, endTime: period[2] })
+            .andWhere("gid = :gid", { gid: tradeSession.id })
+            .andWhere("status = :status", { status: "filled" })
+            .getRawOne();
+        return buy;
+    }
 
+    private async buyOrders(tradeSession: any) {
+        const buyOrderQB = this.buyOrderService.getQueryBuilder();
+        const buy = await buyOrderQB
+            .select("*")
+            .andWhere("gid = :gid", { gid: tradeSession.id })
+            .getRawMany();
+        return buy;
+    }
+
+    private async buyPrice(tradeSession: any, period: any) {
+        const buyOrderQB2 = this.buyOrderService.getQueryBuilder();
+        const buyPrice = await buyOrderQB2
+            .select("ROUND(SUM(amount*price)/SUM(amount), 4)", "total")
+            .where("candleMts > :startTime AND candleMts < :endTime", { startTime: tradeSession.startTime, endTime: period[2] })
+            .andWhere("gid = :gid", { gid: tradeSession.id })
+            .andWhere("status = :status", { status: "filled" })
+            .getRawOne();
+        return buyPrice;
+    }
+
+    private async periodPrice(period: any, tradeSession: any) {
+        const buyOrderQB4 = this.buyOrderService.getQueryBuilder();
+        const periodPrice = await buyOrderQB4
+            .select("ROUND(SUM(price*amount), 4)", "avgPrice")
+            .addSelect("ROUND(MAX(price), 4)", "maxPrice")
+            .addSelect("ROUND(MIN(price), 4)", "minPrice")
+            .addSelect("SUM(amount)", "amount")
+            .addSelect("COUNT(id)", "count")
+            .where("candleMts > :startTime AND candleMts < :endTime", { startTime: period[1], endTime: period[2] })
+            .andWhere("gid = :gid", { gid: tradeSession.id })
+            .andWhere("status = :status", { status: "filled" })
+            .getRawOne();
+        return periodPrice;
+    }
+
+    private async candles(period: any, tradeSession: any) {
+        const candleQB = this.candleDbService.getQueryBuilder();
+        const candles = await candleQB
+            .select("ROUND(AVG(close), 4)", "avgPrice")
+            .addSelect("ROUND(MAX(close), 4)", "maxPrice")
+            .addSelect("ROUND(MIN(close), 4)", "minPrice")
+            .addSelect("ROUND(MIN(low), 4)", "lowPrice")
+            .where("mts >= :startTime AND mts <= :endTime", { startTime: period[1], endTime: period[2] })
+            .andWhere("symbol = :symbol", { symbol: tradeSession.symbol })
+            .getRawOne();
+        return candles;
+    }
+
+    private async periodDips(period: any, tradeSession: any) {
+        const buyOrderQB7 = this.buyOrderService.getQueryBuilder();
+        const periodDips = await buyOrderQB7
+            .select("COUNT( tradeSystemGroup )", "count")
+            .addSelect("tradeSystemGroup", "percent")
+            .where("candleMts > :startTime AND candleMts < :endTime", { startTime: period[1], endTime: period[2] })
+            .andWhere("gid = :gid", { gid: tradeSession.id })
+            .andWhere("status = :status", { status: "filled" })
+            .groupBy("tradeSystemGroup")
+            .getRawMany();
+        return periodDips;
+    }
+
+    private async sell(tradeSession: TradeSession, period: any) {
+        const sellOrderQB = this.sellOrderService.getQueryBuilder();
+        const sell = await sellOrderQB
+            .select("ROUND(SUM(amount*price) - SUM(amount*price)*2 )", "total")
+            .addSelect("ROUND((SUM(amount*price) - SUM(amount*price)*2) * 0.002 )", "fees")
+            .addSelect("ROUND(SUM( amount-(amount*2) ), 4)", "amount")
+            .where("candleMts > :startTime AND candleMts < :endTime", { startTime: tradeSession.startTime, endTime: period[2] })
+            .andWhere("gid = :gid", { gid: tradeSession.id })
+            .andWhere("status = :status", { status: "filled" })
+            .getRawOne();
+        return sell;
+    }
+
+    private async sellOrders(tradeSession: TradeSession) {
+        const sellOrderQB = this.sellOrderService.getQueryBuilder();
+        const sell = await sellOrderQB
+            .select("bo.*")
+            .addSelect("SellOrder.*")
+            .addSelect("ROUND(bo.price, 2)", "buyPrice")
+            .addSelect("ROUND(SellOrder.price, 2)", "sellPrice")
+            .addSelect("DATETIME(ROUND(SellOrder.candleMts / 1000), 'unixepoch')", "sellTime")
+            .addSelect("DATETIME(ROUND(bo.candleMts / 1000), 'unixepoch')", "buyTime")
+            .innerJoinAndSelect("SellOrder.buyOrder", "bo", "bo.id = SellOrder.buyOrder")
+            .where("SellOrder.gid = :gid", { gid: tradeSession.id })
+            .getRawMany();
+        return sell;
+    }
+
+    private async sellAll(tradeSession: TradeSession, period: any) {
+        const sellOrderQB = this.sellOrderService.getQueryBuilder();
+        const sellAll = await sellOrderQB
+            .select("bo.price", "price")
+            .addSelect("bo.tradeSystemGroup", "priceDiff")
+            .addSelect("bo.amount", "amount")
+            .innerJoinAndSelect("SellOrder.buyOrder", "bo", "bo.id = SellOrder.buyOrder")
+            .where("bo.candleMts > :startTime AND bo.candleMts < :endTime", { startTime: tradeSession.startTime, endTime: period[2] })
+            .andWhere("SellOrder.gid = :gid", { gid: tradeSession.id })
+            .andWhere("bo.status = :status", { status: "filled" })
+            .getRawMany();
+        return sellAll;
     }
 
     private cleanDips(orders) {
