@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common'
 
-import { TradeSessionBLService } from 'src/tradesession/tradesession.bl.service';
+import { TradeSessionBLService } from '../../tradesession/tradesession.bl.service';
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
-import { BuyOrderService } from 'src/order/buyorder.service';
-import { SellOrderService } from 'src/order/sellorder.service';
-import { CandleDbService } from 'src/candles/candle.db.service';
-import { TradeSession } from 'src/tradesession/models/tradesession.entity';
+import { BuyOrderService } from '../../order/buyorder.service';
+import { SellOrderService } from '../../order/sellorder.service';
+import { CandleDbService } from '../../candles/candle.db.service';
+import { TradeSession } from '../../tradesession/models/tradesession.entity';
 
 
 @Injectable()
@@ -19,7 +19,8 @@ export class StrategyTwoReportService {
         private readonly candleDbService: CandleDbService
     ) { }
 
-    async report(tradeSessionId?: number): Promise<any> {
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    async report(tradeSessionId?: number, unit?: any): Promise<any> {
         dayjs.extend(utc)
 
         let tradeSession
@@ -34,23 +35,18 @@ export class StrategyTwoReportService {
 
         const date1 = dayjs.utc(tradeSession.startTime)
         const date2 = dayjs.utc(tradeSession.endTime)
-        const diff = date2.diff(date1, 'day')
+        const diff = date2.diff(date1, unit)
 
         const periods = []
         periods.push(["1-" + startMonth + '-' + startYear, date1.valueOf()])
 
         for (let m = 1; m <= diff; m++) {
-            const next = dayjs.utc(date1).add(m, 'day')
+            const next = dayjs.utc(date1).add(m, unit)
             periods[m - 1] = [periods[m - 1][0], periods[m - 1][1], next.valueOf()]
             const nextMonth = dayjs.utc(next).month() + 1
             const nextYear = dayjs.utc(next).year()
             periods.push([m + 1 + "-" + nextMonth + '-' + nextYear, next.valueOf()])
         }
-
-        // periods.push(["L", periods[periods.length-1][2]], Date.now())
-
-        // removes last we make one more so we can get full data
-        // periods.pop()
 
         const trades = {
             labels: [],

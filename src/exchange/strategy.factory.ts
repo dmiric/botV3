@@ -11,7 +11,7 @@ import { BuyOrderBLService } from '../order/buyorder.bl.service';
 import { SellOrderBLService } from '../order/sellorder.bl.service'
 import { SocketsService } from './bfx.sockets.service'
 import { BehaviourTwoService } from '../behaviour/behaviour.two.service'
-import { BackTestDataSource } from 'src/backtest/btest.datasource.service'
+import { BackTestDataSource } from '../backtest/btest.datasource.service'
 
 
 @Injectable()

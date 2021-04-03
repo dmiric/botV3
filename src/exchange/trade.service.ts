@@ -2,11 +2,11 @@ import { Injectable, Inject, Logger, LoggerService } from '@nestjs/common'
 
 import { TradeSession } from '../tradesession/models/tradesession.entity'
 import { SocketsService } from './bfx.sockets.service'
-import { TradeSessionBLService } from 'src/tradesession/tradesession.bl.service'
+import { TradeSessionBLService } from '../tradesession/tradesession.bl.service'
 import { SocketFactory } from './socket.factory'
 import { StrategyFactory } from './strategy.factory'
-import { BackTestDataSource } from 'src/backtest/btest.datasource.service';
-import { HistCandlesService } from 'src/candles/hist/histcandles.service'
+import { BackTestDataSource } from '../backtest/btest.datasource.service';
+import { HistCandlesService } from '../candles/hist/histcandles.service'
 
 @Injectable()
 export class TradeService {

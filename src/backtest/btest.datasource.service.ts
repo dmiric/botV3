@@ -3,10 +3,10 @@ import { TradeSession } from '../tradesession/models/tradesession.entity'
 
 import { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
-import { HistCandlesService } from "src/candles/hist/histcandles.service";
+import { HistCandlesService } from '../candles/hist/histcandles.service'
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
-import { CandleDbService } from "src/candles/candle.db.service";
+import { CandleDbService } from '../candles/candle.db.service'
 import { candleWidth } from 'bfx-hf-util'
 
 

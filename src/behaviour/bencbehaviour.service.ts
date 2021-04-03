@@ -2,7 +2,7 @@ import { Injectable, Logger, LoggerService, Inject } from '@nestjs/common'
 import { Candle } from '../interfaces/candle.model'
 import { TradeSession } from '../tradesession/models/tradesession.entity'
 import { BuyOrder } from '../order/models/buyOrder.entity'
-import { TradeSystemRulesService } from 'src/tradesystem/tradesystem.rules.service'
+import { TradeSystemRulesService } from '../tradesystem/tradesystem.rules.service'
 
 
 @Injectable()

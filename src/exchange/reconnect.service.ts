@@ -1,8 +1,8 @@
 import { Injectable, Inject, Logger, LoggerService } from '@nestjs/common'
 import { RestService } from './rest.service'
 import { TradeService } from './trade.service'
-import { TradeSessionBLService } from 'src/tradesession/tradesession.bl.service'
-import { ConfigService } from 'src/config/config.service'
+import { TradeSessionBLService } from '../tradesession/tradesession.bl.service'
+import { ConfigService } from '../config/config.service'
 
 @Injectable()
 export class ReconnectService {

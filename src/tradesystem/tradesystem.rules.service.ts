@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TradeSystemRules } from './models/tradesystem.rules.entity';
 import { UpdateResult, DeleteResult } from  'typeorm';
-import { TradeSession } from 'src/tradesession/models/tradesession.entity';
-import * as SYSTEM_RULES_DATA from './trade_system_rules.json'
+import { TradeSession } from '../tradesession/models/tradesession.entity';
+import SYSTEM_RULES_DATA from './trade_system_rules.json'
 
 
 @Injectable()

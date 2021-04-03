@@ -4,8 +4,8 @@ import * as path from 'path';
 
 import HmacSHA384 from 'crypto-js/hmac-sha384';
 import hex from 'crypto-js/enc-hex';
-import { Payload } from "src/interfaces/payload.model";
-import { ConfigService } from 'src/config/config.service';
+import { Payload } from '../interfaces/payload.model'
+import { ConfigService } from '../config/config.service';
 
 @Injectable()
 export class ApiKeyService {

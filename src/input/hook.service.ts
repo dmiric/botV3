@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common'
 import { TradeService } from '../exchange/trade.service'
 import { HookReqDto } from './dto/HookReqDto'
 import { TradeSessionBLService } from '../tradesession/tradesession.bl.service'
-import { TradeSession } from 'src/tradesession/models/tradesession.entity'
-import { TradeSystemRulesService } from 'src/tradesystem/tradesystem.rules.service'
+import { TradeSession } from '../tradesession/models/tradesession.entity'
+import { TradeSystemRulesService } from '../tradesystem/tradesystem.rules.service'
 
 @Injectable()
 export class HookService {

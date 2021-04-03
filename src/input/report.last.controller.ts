@@ -1,14 +1,14 @@
 import { Controller, Get, Render, Param } from '@nestjs/common';
 import { StrategyTwoReportService } from '../exchange/reports/strategy.two.report.service'
-@Controller('report')
-export class ReportController {
+@Controller('report-last')
+export class ReportLastController {
 
     constructor(private readonly reportService: StrategyTwoReportService) { }
 
-    @Get('/:tradeSessionId/:unit?')
+    @Get(':unit?')
     @Render('report')
-    async report(@Param('tradeSessionId') tradeSessionId: number, @Param('unit') unit = 'week'): Promise<any> {
-        const message = await this.reportService.report(tradeSessionId, unit)
+    async report2(@Param('unit') unit = 'week'): Promise<any> {
+        const message = await this.reportService.report(null, unit)
         return { message: JSON.stringify(message) };
     }
 

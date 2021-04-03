@@ -9,7 +9,7 @@ import { BuyOrderBLService } from '../../order/buyorder.bl.service';
 
 import { SellOrderBLService } from '../../order/sellorder.bl.service'
 import { SocketsService } from '../bfx.sockets.service'
-import { BehaviourTwoService } from 'src/behaviour/behaviour.two.service'
+import { BehaviourTwoService } from '../../behaviour/behaviour.two.service'
 
 @Injectable()
 export class StrategyTwoService {

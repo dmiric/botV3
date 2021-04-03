@@ -11,7 +11,7 @@ import { BuyOrderBLService } from '../../order/buyorder.bl.service';
 
 import { SellOrderBLService } from '../../order/sellorder.bl.service'
 import { SocketsService } from '../bfx.sockets.service'
-import { BuyOrder } from 'src/order/models/buyOrder.entity'
+import { BuyOrder } from '../../order/models/buyOrder.entity'
 
 @Injectable()
 export class StrategyOneService {

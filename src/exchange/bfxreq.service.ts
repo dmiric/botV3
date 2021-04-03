@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common"
 import { ApiOrder } from '../interfaces/order.model'
 import { BuyOrder } from "../order/models/buyOrder.entity"
-import { SellOrder } from "src/order/models/sellOrder.entity"
+import { SellOrder } from '../order/models/sellOrder.entity'
 
 @Injectable()
 export class BFXReqService {

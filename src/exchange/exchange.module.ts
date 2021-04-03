@@ -14,7 +14,7 @@ import { CandleProcessor } from './candle.processor'
 import { SocketFactory } from './socket.factory'
 import { StrategyFactory } from './strategy.factory'
 import { StrategyTwoReportService } from './reports/strategy.two.report.service'
-import { ConfigModule } from 'src/config/config.module'
+import { ConfigModule } from '../config/config.module'
 
 @Module({
     imports: [BehaviourModule, ConfigModule, CandlesModule, forwardRef(() => InputModule), TradeSessionModule, OrderModule,

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { TradeSession } from 'src/tradesession/models/tradesession.entity'
+import { TradeSession } from '../tradesession/models/tradesession.entity'
 import { QueryBuilder, UpdateResult } from 'typeorm'
 import { SellOrderService } from './sellorder.service'
 import { SellOrder } from './models/sellOrder.entity'

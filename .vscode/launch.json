@@ -11,11 +11,13 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "program": "${workspaceFolder}\\start",
-            "preLaunchTask": "tsc: build - tsconfig.json",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run-script", "start:debug"],
+            "cwd": "${workspaceFolder}",
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
-            ]
+            ],
+            "console": "integratedTerminal"
         }
     ]
 }

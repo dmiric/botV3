@@ -5,7 +5,7 @@ import { ApiKeyService } from "../input/apikey.service";
 import { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
 import { HistCandlesService } from '../candles/hist/histcandles.service';
-import { CandleDbService } from 'src/candles/candle.db.service';
+import { CandleDbService } from '../candles/candle.db.service';
 
 
 @Injectable()
