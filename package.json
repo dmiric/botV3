@@ -46,6 +46,7 @@
     "nest-winston": "^1.4.0",
     "node-fetch": "^2.6.1",
     "node-xlsx": "^0.15.0",
+    "percentagejs": "^1.0.2",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^6.6.3",
@@ -83,12 +84,15 @@
     "eslint-plugin-import": "^2.20.1",
     "jest": "26.0.1",
     "prettier": "^1.19.1",
+    "run-script-webpack-plugin": "0.0.11",
     "supertest": "^4.0.2",
     "ts-jest": "26.1.0",
     "ts-loader": "^6.2.1",
     "ts-node": "^8.6.2",
     "tsconfig-paths": "^3.9.0",
     "typescript": "^3.7.4",
+    "webpack": "^5.31.2",
+    "webpack-node-externals": "^2.5.2",
     "yargs": "^16.1.1"
   },
   "jest": {

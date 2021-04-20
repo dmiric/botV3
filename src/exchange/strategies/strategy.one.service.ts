@@ -97,7 +97,7 @@ export class StrategyOneService {
         this.candleSet = { ...this.parseCandlesService.handleCandleStream(data, tradeSession, this.candleSet)}
 
         const currentCandle: Candle = this.candleSet[this.candleSet.length - 1]
-        const lastBuyOrder = await this.buyOrderBLService.getLastBuyOrder(tradeSession)
+        const lastBuyOrder = await this.buyOrderBLService.getPrevBuyOrder(tradeSession)
 
         if (!lastBuyOrder) {
             const order = await this.buyOrderBLService.createBuyOrder(tradeSession, 'MARKET', 1, currentCandle)
@@ -218,7 +218,7 @@ export class StrategyOneService {
         // wu: wallet update
         if (data[1] == 'wu') {
             // make orders that are not executed
-            const order = await this.buyOrderBLService.getLastBuyOrder(tradeSession)
+            const order = await this.buyOrderBLService.getPrevBuyOrder(tradeSession)
 
             if (!order) {
                 return

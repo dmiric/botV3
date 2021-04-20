@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 import { Injectable, Inject, Logger, LoggerService } from '@nestjs/common'
 
 import { TradeSession } from '../tradesession/models/tradesession.entity'
@@ -5,8 +6,10 @@ import { SocketsService } from './bfx.sockets.service'
 import { TradeSessionBLService } from '../tradesession/tradesession.bl.service'
 import { SocketFactory } from './socket.factory'
 import { StrategyFactory } from './strategy.factory'
-import { BackTestDataSource } from '../backtest/btest.datasource.service';
-import { HistCandlesService } from '../candles/hist/histcandles.service'
+import { BackTestDataSource } from '../backtest/btest.datasource.service'
+import { Cron } from '@nestjs/schedule'
+import { Queue } from 'bull'
+import { InjectQueue } from '@nestjs/bull'
 
 @Injectable()
 export class TradeService {
@@ -16,13 +19,10 @@ export class TradeService {
     private stoppedManually = false;
     private starting = false;
 
-    // signal
+
     private lastSignal: TradeSession;
     private lastSignalTime: string;
-    private lastLongKey: TradeSession;
     private activeTradeSession: TradeSession;
-
-
     private socketsService: SocketsService | BackTestDataSource
     private strategyService = null
 
@@ -31,8 +31,10 @@ export class TradeService {
         private readonly strategyFactory: StrategyFactory,
         @Inject(Logger) private readonly logger: LoggerService,
         private readonly tradeSessionBLService: TradeSessionBLService,
-        private readonly histCandles: HistCandlesService
-    ) { }
+        @InjectQueue('bot') private readonly botQueue: Queue
+    ) {
+        this.botQueue.empty()
+    }
 
     async getStatusInfo(): Promise<any> {
         const tradeSession = await this.tradeSessionBLService.findLast()
@@ -59,17 +61,6 @@ export class TradeService {
         return this.stoppedManually
     }
 
-    setLastSignal(tradeSession: TradeSession): void {
-        this.lastLongKey = tradeSession
-
-        this.lastSignal = tradeSession;
-        const d = new Date();
-        this.lastSignalTime = d.toString();
-
-        this.logger.log(this.lastSignal, "signal")
-        this.logger.log(this.lastSignalTime, "signal")
-    }
-
     async closePosition(tradeSession: TradeSession): Promise<void> {
         //this.setLastSignal(key)
 
@@ -82,102 +73,100 @@ export class TradeService {
         }
     }
 
-    async restartTrade(tradeSession: TradeSession): Promise<void> {
-        this.trade(tradeSession)
-    }
-
-    setActiveTradeSession(tradeSession: TradeSession): void {
-        this.activeTradeSession = tradeSession
-    }
-
-    public async trade(tradeSession: TradeSession): Promise<void> {
+    async setActiveTradeSession(tradeSession: TradeSession) {
         if (tradeSession.status == 'initialising') {
             tradeSession.activate()
             await this.tradeSessionBLService.save(tradeSession)
         }
 
-        this.setActiveTradeSession(tradeSession)
+        this.activeTradeSession = tradeSession
+    }
+
+    getActiveTradeSession(): TradeSession {
+        return this.activeTradeSession
+    }
+
+    public async trade(tradeSession?: TradeSession): Promise<void> {
+
+        if (!tradeSession) {
+            tradeSession = this.getActiveTradeSession()
+        } else {
+            this.setActiveTradeSession(tradeSession)
+        }
 
         this.socketsService = await this.socketFactory.getService(tradeSession.exchange)
         this.strategyService = await this.strategyFactory.getService(tradeSession.strategy, this.socketsService)
 
-        await this.socketsService.open('orderSocket', tradeSession)
+        await this.socketsService.openOrder()
         this.setStatus(true)
-        await this.socketsService.open('candleSocket', tradeSession)
+        await this.socketsService.openCandle(tradeSession)
     }
 
-    public async tradeStream(message: string): Promise<void> {
-        if (!this.getStatus() || this.isStopped() || this.isStarting()) {
-            return
-        }
+    async restartTrade(tradeSession: TradeSession): Promise<void> {
+        await this.trade(tradeSession)
+    }
 
+    public async stream(message: string): Promise<void> {
+        if (!this.getStatus() || this.isStopped() || this.isStarting()) return
         const tradeSession = this.activeTradeSession
         const data = JSON.parse(message)
 
-        await this.strategyService.tradeStream(data, tradeSession)
-
-        // pc: position closed
-        if (data[1] == 'pc') {
-            if (data[2][0] !== tradeSession.symbol) {
-                return
-            }
-
+        if (data == 'end') {
             this.resetTradeProcess(tradeSession)
             return
         }
 
-        if (data[1] == 'pn') {
-            if (data[2][0] !== tradeSession.symbol) {
+        // if data[0] == 0 it's authenticated channel
+        if (data[0] == 0) {
+            // pc: position closed
+            if (data[1] == 'pc') {
+                if (data[2][0] !== tradeSession.symbol) return
+                this.resetTradeProcess(tradeSession)
                 return
             }
 
-            tradeSession.positionId = data[2][11]
-            this.activeTradeSession = await this.tradeSessionBLService.save(tradeSession)
-            return
-        }
-    }
+            if (data[1] == 'pn') {
+                if (data[2][0] !== tradeSession.symbol) return
+                tradeSession.positionId = data[2][11]
+                this.activeTradeSession = await this.tradeSessionBLService.save(tradeSession)
+                return
+            }
 
-    public async candleStream(message: string): Promise<void> {
-        if (!this.getStatus() || this.isStopped() || this.isStarting()) {
-            return
-        }
-
-        const tradeSession = this.activeTradeSession
-
-        // this serves to end the backtesting sessions
-        if (message == 'end') {
-            this.resetTradeProcess(tradeSession)
-            return
+            await this.strategyService.tradeStream(data, tradeSession)
         }
 
         await this.strategyService.candleStream(message, tradeSession)
     }
 
+    @Cron('45 * * * * *')
+    async checkSockets(): Promise<void> {
+        if (!this.getStatus() || this.isStopped() || this.isStarting()) return
+        if (!this.socketsService) return
+        if (this.socketsService.checkActivity()) return        
+        if (!this.getStatus()) return
+        const tradeSession = this.getActiveTradeSession()
+        await this.socketsService.openOrder()
+        await this.socketsService.openCandle(tradeSession)
+    }
+
     resetTradeProcess(tradeSession: TradeSession): void {
         this.logger.log("Resetting...", "reset trade process")
-
-        // unsub candle stream
-        //if (this.candleSubscription !== undefined) {
-        //    this.candleSubscription.unsubscribe()
-        // }
-        tradeSession.complete()
-        tradeSession.endTime = tradeSession.endTime ? tradeSession.endTime : Date.now()
-        this.tradeSessionBLService.save(tradeSession)
-
+        this.socketsService.close()
+        this.completeTradeSession(tradeSession)
         this.logger.log(tradeSession)
-
-        // set process inactive
         this.setStatus(false)
         this.logger.log("Done!", "reset trade process")
     }
 
+    private async completeTradeSession(tradeSession: TradeSession) {
+        tradeSession.complete()
+        tradeSession.endTime = tradeSession.endTime ? tradeSession.endTime : Date.now()
+        await this.tradeSessionBLService.save(tradeSession)
+    }
+
     stopTrade(): string {
         this.logger.log("Stopping...", "manual stop")
-        // unsub candle stream
-        // T this.candleSubscription.unsubscribe()
-        // unsub from order stream
-        // T this.orderSubscription.unsubscribe()
-        // set process inactive
+        this.socketsService.close()
         this.setStatus(false)
 
         this.stoppedManually = true

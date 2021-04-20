@@ -3,6 +3,8 @@ import { TradeSession } from '../tradesession/models/tradesession.entity'
 import { QueryBuilder, UpdateResult } from 'typeorm'
 import { SellOrderService } from './sellorder.service'
 import { SellOrder } from './models/sellOrder.entity'
+import { SellOrderRev } from './models/sellOrder.rev.entity'
+import { SellOrderRevService } from './sellorder.rev.service'
 
 @Injectable()
 export class SellOrderBLService {
@@ -11,7 +13,7 @@ export class SellOrderBLService {
         tradeSession: 0
     }
 
-    constructor(private sellOrderDb: SellOrderService) { }
+    constructor(private sellOrderDb: SellOrderService, private revisionService: SellOrderRevService) { }
 
     async createSellOrder(tradeSession: TradeSession, type: string, amount: number, price?: number, trailingPrice?: number): Promise<SellOrder> {
         this.busy = {
@@ -39,6 +41,9 @@ export class SellOrderBLService {
         // we dont set the price so we can use order for market and limit order
         const sellOrder = await this.sellOrderDb.create(sellOrderData)
         const so = await this.sellOrderDb.findByIds([sellOrder.id])
+        const revision: SellOrderRev = { ...sellOrder, updateTime: Date.now() }
+        delete revision.id
+        await this.revisionService.create(revision)
         return so[0]
     }
 
@@ -61,8 +66,12 @@ export class SellOrderBLService {
         return sellOrders[0]
     }
 
-    async updateSellOrder(sellOrder: SellOrder): Promise<UpdateResult> {
-        return await this.sellOrderDb.update(sellOrder)
+    async updateSellOrder(sellOrder: SellOrder, revChanges = {}): Promise<UpdateResult> {
+        const revision: SellOrderRev = { ...sellOrder, updateTime: Date.now(), ...revChanges }
+        delete revision.id
+        await this.revisionService.create(revision)
+        const res = await this.sellOrderDb.update(sellOrder)        
+        return res
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types

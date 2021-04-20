@@ -55,6 +55,9 @@ export class TradeSession implements TradeSession {
     priceDiff?: number;
 
     @Column({nullable: true})
+    buyTrailingDistance?: number;
+
+    @Column({nullable: true})
     priceDiffLow?: string;
 
     @Column({nullable: true})

@@ -18,30 +18,19 @@ export class ReconnectService {
     async reConnect(): Promise<any> {
         // prevent signals while we are setting up the state
         this.tradeService.setStarting(true)
-        const configSymbol = this.config.getSymbol()
-
-        const positions = await this.restService.fetchActivePositions()
-        this.logger.log(positions)
-
-        if (!positions) {
+        const tradeSession = await this.tradeSessionBLService.findLastActive()
+        if (!tradeSession) {
             this.tradeService.setStarting(false)
             return
         }
 
-        for (const pos of positions) {
-            if (pos[1] === 'ACTIVE' && (pos[0] == configSymbol || pos[0] == 'tTESTBTC:TESTUSD')) {
-                this.logger.log(pos)
-                // Last buy order from history
-
-                const posId = pos[11]
-                const tradeSession = await this.tradeSessionBLService.findLastActiveBySymbolandId(configSymbol, posId)
-
-                this.tradeService.restartTrade(tradeSession)
-            }
+        if(tradeSession.exchange == 'backtest') {
+            this.tradeService.setStarting(false)
+            return
         }
-
+        await this.tradeService.restartTrade(tradeSession)
         this.tradeService.setStarting(false)
     }
 
-    
+
 }

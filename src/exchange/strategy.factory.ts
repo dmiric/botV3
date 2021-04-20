@@ -10,8 +10,9 @@ import { RestService } from './rest.service';
 import { BuyOrderBLService } from '../order/buyorder.bl.service';
 import { SellOrderBLService } from '../order/sellorder.bl.service'
 import { SocketsService } from './bfx.sockets.service'
-import { BehaviourTwoService } from '../behaviour/behaviour.two.service'
 import { BackTestDataSource } from '../backtest/btest.datasource.service'
+import { BalanceService } from 'src/balance/balance.service'
+import { WalletService } from 'src/wallet/wallet.service'
 
 
 @Injectable()
@@ -20,12 +21,13 @@ export class StrategyFactory {
     constructor(
         private readonly parseCandlesService: ParseCandlesService,
         private readonly behaviorService: BencBehaviourService,
-        private readonly behaviourTwoService: BehaviourTwoService,
         private readonly bfxReqService: BFXReqService,
         private readonly restService: RestService,
         @Inject(Logger) private readonly logger: LoggerService,
         private readonly buyOrderBLService: BuyOrderBLService,
         private readonly sellOrderBLService: SellOrderBLService,
+        private readonly balanceService: BalanceService,
+        private readonly walletService: WalletService
     ) { }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -47,12 +49,14 @@ export class StrategyFactory {
             case 'two':
                 service = new StrategyTwoService(
                     this.parseCandlesService,
-                    this.behaviourTwoService,
+                    this.restService,
                     this.bfxReqService,
                     this.logger,
                     this.buyOrderBLService,
                     this.sellOrderBLService,
-                    (socketsService as SocketsService));
+                    (socketsService as SocketsService),
+                    this.balanceService,
+                    this.walletService);
                 break;
         }
 

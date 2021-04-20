@@ -13,32 +13,11 @@ export class HookService {
         private readonly tradeSessionBLService: TradeSessionBLService,
         private readonly tradeSystemRules: TradeSystemRulesService) { }
 
-    async start(req: HookReqDto): Promise<void> {
+    async newLong(req: HookReqDto): Promise<void> {
         if (!this.validate(req)) {
             return
         }
 
-        switch (req.action) {
-            case 'close':/*
-                const tradeSession = await this.tradeSessionBLService.findLastActiveBySymbol(req.symbol)
-                tradeSession.closePercent = req.buy.closePercent
-
-                this.tradeSessionBLService.save(tradeSession)
-                this.tradeService.closePosition(tradeSession[0])
-                */
-                break;
-            case 'long':
-                if (req.hasOwnProperty('update') && req.update === true) {
-                    this.updateLong(req)
-                    return
-                }
-
-                this.newLong(req)
-                break;
-        }
-    }
-
-    async newLong(req: HookReqDto): Promise<void> {
         if (this.tradeService.getStatus() || this.tradeService.isStopped() || this.tradeService.isStarting()) {
             console.log("already active")
             return
@@ -66,6 +45,7 @@ export class HookService {
             safeDistance: req.buy.safeDistance,
             status: 'new',
             originalTrailingDistance: req.sell.trailingDistance ? req.sell.trailingDistance : null,
+            buyTrailingDistance: req.buy.trailingDistance ? req.buy.trailingDistance : null,
             buyRules: buyRules[0],
             sellRules: sellRules[0],
             strategy: req.strategy,
@@ -96,7 +76,11 @@ export class HookService {
     }
 
     async updateLong(req: HookReqDto): Promise<void> {
-        const tradeSession = await this.tradeSessionBLService.findLastActiveBySymbol(req.symbol)
+        if (!this.validate(req)) {
+            return
+        }
+
+        const tradeSession = await this.tradeSessionBLService.findLastActive()
 
         if (req.hasOwnProperty('timeframe')) {
             tradeSession.timeframe = req.timeframe
@@ -115,6 +99,10 @@ export class HookService {
 
             if (buy.hasOwnProperty('priceDiff')) {
                 tradeSession.priceDiff = buy.priceDiff
+            }
+
+            if (buy.hasOwnProperty('trailingDistance')) {
+                tradeSession.buyTrailingDistance = req.buy.trailingDistance
             }
 
             if (buy.hasOwnProperty('priceDiffLow')) {
@@ -142,6 +130,8 @@ export class HookService {
                 tradeSession.overrideTrailingDistance = req.sell.trailingDistance
             }
 
+            // test
+
             if (sell.hasOwnProperty('sellRules')) {
                 const sellRules = await this.tradeSystemRules.findByIds([sell.sellRules])
                 tradeSession.sellRules = sellRules[0]
@@ -161,7 +151,7 @@ export class HookService {
     }
 
     validate(req: HookReqDto): boolean {
-        if (req.action !== 'long' && req.action !== 'close') {
+        if (req.action !== 'long') {
             console.log("Incorrect action param.")
             return false
         }
@@ -174,14 +164,6 @@ export class HookService {
         if (!req.hasOwnProperty('symbol')) {
             console.log("Missing a symbol param.")
             return false
-        }
-
-        if (req.action === 'close') {
-            if (!req.hasOwnProperty('closePercent')) {
-                console.log("Missing closePercent param.")
-                return false
-            }
-
         }
 
         if (req.action === 'long') {

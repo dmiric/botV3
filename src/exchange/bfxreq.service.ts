@@ -35,23 +35,24 @@ export class BFXReqService {
         return [0, 'on', null, apiOrder]
     }
 
-    /*
-    public updateOrder(order: Order): any {
+    
+    public updateBuyOrder(order: BuyOrder): any {
         // make order
         const apiOrder = {
-            cid: order.cid,
-            meta: { ...order.meta }
+            id: order.exchangeId,
+            amount: order.amount.toFixed(4),
+            price: order.price.toFixed(2)
         }
-        return [0, 'uo', null, apiOrder]
+        return [0, 'ou', null, apiOrder]
     }
-    */
+    
 
     public requestReqcalc(): any {
         return [0, 'calc', null, [["balance"]]]
     }
 
-    public cancelOrder(id: number): any {
-        return [0, 'oc', null, { id: id }]
+    public cancelOrder(cid: number): any {
+        return [0, 'oc', null, { cid: cid }]
     }
 
     private prepareApiOrder(order: BuyOrder | SellOrder): ApiOrder {

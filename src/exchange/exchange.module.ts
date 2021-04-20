@@ -10,23 +10,30 @@ import { CandlesModule } from '../candles/candles.module'
 import { BFXReqService } from './bfxreq.service'
 import { BullModule } from '@nestjs/bull';
 import { TradeProcessor } from './trade.processor'
-import { CandleProcessor } from './candle.processor'
 import { SocketFactory } from './socket.factory'
 import { StrategyFactory } from './strategy.factory'
 import { StrategyTwoReportService } from './reports/strategy.two.report.service'
 import { ConfigModule } from '../config/config.module'
+import { BalanceModule } from '../balance/balance.module'
+import { WalletModule } from '../wallet/wallet.module'
 
 @Module({
-    imports: [BehaviourModule, ConfigModule, CandlesModule, forwardRef(() => InputModule), TradeSessionModule, OrderModule,
-        BullModule.registerQueueAsync({
-            name: 'bot'
-        })
+    imports: [
+        BehaviourModule, 
+        ConfigModule, 
+        CandlesModule, 
+        forwardRef(() => InputModule), 
+        TradeSessionModule, 
+        OrderModule,
+        BullModule.registerQueueAsync({ name: 'bot' }),
+        BalanceModule,
+        WalletModule
     ],
     controllers: [],
     providers: [TradeService, Logger, RestService, ReconnectService,
-        BFXReqService, TradeProcessor, CandleProcessor, SocketFactory, StrategyFactory, StrategyTwoReportService],
+        BFXReqService, TradeProcessor, SocketFactory, StrategyFactory, StrategyTwoReportService],
     exports: [TradeService, ReconnectService, RestService,
-        BFXReqService, TradeProcessor, CandleProcessor, StrategyTwoReportService]
+        BFXReqService, TradeProcessor, StrategyTwoReportService]
 })
 
 export class ExchangeModule { }

@@ -24,7 +24,7 @@ export class BuyOrderService {
         return await this.repository.find(options);
     }
 
-    async create(buyOrder: BuyOrder): Promise<BuyOrder> {
+    async create(buyOrder: BuyOrder): Promise<BuyOrder> {        
         return await this.repository.save(buyOrder);
     }
 

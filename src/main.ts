@@ -11,6 +11,8 @@ import { ConfigModule } from './config/config.module'
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 
+declare const module: any;
+
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: WinstonModule.createLogger({
@@ -39,5 +41,10 @@ async function bootstrap() {
   const port = config.getPort()
 
   await app.listen(port);
+
+  if (module.hot) {
+    module.hot.accept();
+    module.hot.dispose(() => app.close());
+  }
 }
 bootstrap();

@@ -34,7 +34,7 @@ export class StrategyTwoReportService {
         const startMonth = dayjs.utc(tradeSession.startTime).month() + 1
 
         const date1 = dayjs.utc(tradeSession.startTime)
-        const date2 = dayjs.utc(tradeSession.endTime)
+        const date2 = dayjs.utc(tradeSession.endTime ? tradeSession.endTime : Date.now())
         const diff = date2.diff(date1, unit)
 
         const periods = []
@@ -184,7 +184,7 @@ export class StrategyTwoReportService {
 
         for (const [pi, period] of periods.entries()) {
             if(!period[2]) {
-                period[2] = tradeSession.endTime
+                period[2] = tradeSession.endTime ? tradeSession.endTime : Date.now()
             }
             const buy = await this.buy(tradeSession, period);
             const buyPrice = await this.buyPrice(tradeSession, period);
@@ -232,17 +232,13 @@ export class StrategyTwoReportService {
         }
 
         const cleanOrders = this.cleanDips(orders)
-
         const sessions = await this.tradeSessions(tradeSession);
-
-        const buyOrders = await this.buyOrders(tradeSession);
         const sellOrders = await this.sellOrders(tradeSession);
 
         return {
             data: { trades: trades, prices: prices, accumulated: accumulated, orders: cleanOrders },
             tradeSession: tradeSession,
             tradeSessions: sessions,
-            buyOrders: buyOrders,
             sellOrders: sellOrders
         }
 
@@ -271,15 +267,6 @@ export class StrategyTwoReportService {
             .andWhere("gid = :gid", { gid: tradeSession.id })
             .andWhere("status = :status", { status: "filled" })
             .getRawOne();
-        return buy;
-    }
-
-    private async buyOrders(tradeSession: any) {
-        const buyOrderQB = this.buyOrderService.getQueryBuilder();
-        const buy = await buyOrderQB
-            .select("*")
-            .andWhere("gid = :gid", { gid: tradeSession.id })
-            .getRawMany();
         return buy;
     }
 

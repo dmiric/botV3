@@ -10,9 +10,9 @@ import { SellOrder } from './sellOrder.entity';
             { name: 'send', from: ['new', 'failed'], to: 'sent' },
             { name: 'recieve', from: ['sent', 'failed'], to: 'recieved' },
             { name: 'confirm', from: 'recieved', to: 'confirmed' },
-            { name: 'partialyFill', from: ['recieved', 'confirmed'], to: 'partialyFilled' },
-            { name: 'fill', from: ['recieved', 'partialyFilled', 'confirmed'], to: 'filled' },
-            { name: 'cancel', from: ['new', 'sent', 'partialyFilled', 'confirmed', 'failed'], to: 'canceled' },
+            { name: 'partialyFill', from: ['recieved', 'confirmed', 'canceled'], to: 'partialyFilled' },
+            { name: 'fill', from: ['recieved', 'partialyFilled', 'confirmed', 'canceled'], to: 'filled' },
+            { name: 'cancel', from: ['new', 'sent', 'recieved', 'confirmed', 'partialyFilled', 'failed'], to: 'canceled' },
             { name: 'fail', from: 'sent', to: 'failed' },
         ]
     },

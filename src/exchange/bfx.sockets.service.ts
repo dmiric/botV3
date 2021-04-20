@@ -4,7 +4,6 @@ import WebSocket from "ws";
 import { ApiKeyService } from "../input/apikey.service";
 import { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
-import { Cron } from '@nestjs/schedule';
 
 @Injectable()
 export class SocketsService {
@@ -27,57 +26,26 @@ export class SocketsService {
     constructor(
         private readonly apiKeyService: ApiKeyService,
         @InjectQueue('bot') private readonly botQueue: Queue
-    ) {
-        if (this.sockets.candleSocket) {
-            this.sockets.candleSocket.on("message", (message: string) => {
+    ) { }
 
-                this.botQueue.add(
-                    'candles',
-                    { message: message },
-                    { removeOnComplete: true }
-                )
-
-                this.lastCandleSocketTime = 0
-            }
-            );
-        }
-
-        if (this.sockets.orderSocket) {
-            this.sockets.orderSocket.on("message", (message: string) => {
-                this.botQueue.add(
-                    'trade',
-                    { message: message },
-                    { removeOnComplete: true, delay: 50 }
-                )
-
-                this.lastOrderSocketTime = Date.now()
-            }
-            );
-        }
-    }
-
-    @Cron('59 * * * * *')
-    handleCron(): void {
+    checkActivity(): boolean {
         if (this.lastOrderSocketTime == 0 && this.lastCandleSocketTime == 0) {
-            return
+            return true
         }
 
-        if(!this.tradeSession) {
-            return
+        if (!this.tradeSession) {
+            return true
         }
 
         const posDelay = Math.floor((Date.now() - this.lastOrderSocketTime) / 1000)
-        if (posDelay > 60) {
-            console.log("reconnecting to order socket" + this.lastOrderSocketTime)
-            const payload = this.apiKeyService.getAuthPayload()
-            this.send('orderSocket', payload)
+        const candleDelay = Math.floor((Date.now() - this.lastCandleSocketTime) / 1000)
+        if (posDelay > 30 || candleDelay > 30) {
+            console.log("reconnecting to order socket " + this.lastOrderSocketTime)
+            this.close()
+            return false
         }
 
-        const candleDelay = Math.floor((Date.now() - this.lastCandleSocketTime) / 1000)
-        if (candleDelay > 60) {
-            console.log("reconnecting to candle socket")
-            this.setSubscription(this.tradeSession)
-        }
+        return true
     }
 
     // Make the function wait until the connection is made...
@@ -116,27 +84,53 @@ export class SocketsService {
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-    open(socket: string, tradeSession: TradeSession): boolean {
-        // Wait until the state of the socket is not ready and send the message when it is...
-        this.waitForSocketConnection(socket, () => {
-            if (socket == 'orderSocket') {
-                const payload = this.apiKeyService.getAuthPayload()
-                this.send(socket, payload)
-                return true
-            }
+    openCandle(tradeSession: TradeSession): any {
+        this.waitForSocketConnection('candleSocket', () => {
+            this.sockets.candleSocket.addEventListener("message", (message) => {
+                if (!message.hasOwnProperty("data")) {
+                    return
+                }
 
-            if (socket == 'candleSocket') {
-                this.setSubscription(tradeSession)
-                this.tradeSession = tradeSession
-                return true
-            }
+                this.botQueue.add(
+                    'candles',
+                    { message: message.data },
+                    { removeOnComplete: true }
+                )
+
+                this.lastCandleSocketTime = Date.now()
+            });
+            this.setSubscription(tradeSession)
+            this.tradeSession = tradeSession
         });
+    }
 
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    openOrder(): any {
+        // Wait until the state of the socket is not ready and send the message when it is...
+        this.waitForSocketConnection('orderSocket', () => {
+                this.sockets.orderSocket.addEventListener("message", (message) => {
+                    if (!message.hasOwnProperty("data")) {
+                        return
+                    }
+
+                    this.botQueue.add(
+                        'trade',
+                        { message: message.data },
+                        { removeOnComplete: true }
+                    )
+
+                    this.lastOrderSocketTime = Date.now()
+                });
+                const payload = this.apiKeyService.getAuthPayload()
+                this.send('orderSocket', payload)
+                return true          
+        });
         return
     }
 
-    close(socket: string): void {
-        this.sockets[socket].close(1000, 'Normal Closure');
+    close(): void {
+        this.sockets['orderSocket'].close(1000, 'Normal Closure');
+        this.sockets['candleSocket'].close(1000, 'Normal Closure');
     }
 
     private setSubscription(tradeSession: TradeSession): void {

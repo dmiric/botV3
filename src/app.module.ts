@@ -1,3 +1,4 @@
+import { WalletModule } from './wallet/wallet.module';
 import { BacktestModule } from './backtest/backtest.module';
 import { TradeSystemModule } from './tradesystem/tradesystem.module';
 import { TradeSessionModule } from './tradesession/tradesession.module';
@@ -11,17 +12,18 @@ import { Module, Logger } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ClosedTradesController } from './input/closedtrades.controller';
 import { OrderModule } from './order/order.module';
 import { BullModule } from '@nestjs/bull';
 import { ConfigService } from './config/config.service';
 import { ConfigModule } from './config/config.module'
 
 import { SqliteConnectionOptions } from 'typeorm/driver/sqlite/SqliteConnectionOptions';
+import { ScheduleModule } from '@nestjs/schedule';
 
 
 @Module({
   imports: [
+    WalletModule,
     BacktestModule,
     ConfigModule,
     TypeOrmModule.forRootAsync({
@@ -54,9 +56,10 @@ import { SqliteConnectionOptions } from 'typeorm/driver/sqlite/SqliteConnectionO
     ExchangeModule,
     BehaviourModule,
     InputModule,
-    CandlesModule
+    CandlesModule,
+    ScheduleModule.forRoot()
   ],
-  controllers: [StatusController, AppController, ClosedTradesController],
+  controllers: [StatusController, AppController],
   providers: [
     Logger,
     AppService

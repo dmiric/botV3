@@ -20,8 +20,8 @@ export class TradeSessionBLService {
         return activeTradeSessions[0]
     }
 
-    async findLastActiveBySymbol(symbol: string): Promise<TradeSession> {
-        const activeTradeSessions = await this.tradeSession.find({ where: { symbol: symbol,  status: 'active' } })
+    async findLastActive(): Promise<TradeSession> {
+        const activeTradeSessions = await this.tradeSession.find({ where: { status: 'active' }, order: { id: 'DESC' }, take: 1 })
         return activeTradeSessions[0]
     }
 

@@ -4,11 +4,13 @@ import { UpdateResult } from 'typeorm'
 import { BuyOrderService } from './buyorder.service'
 import { BuyOrder } from './models/buyOrder.entity'
 import { Candle } from '../interfaces/candle.model'
+import { BuyOrderRev } from './models/buyOrder.rev.entity'
+import { BuyOrderRevService } from './buyorder.rev.service'
 
 @Injectable()
 export class BuyOrderBLService {
 
-    constructor(private buyOrderDb: BuyOrderService) {}
+    constructor(private buyOrderDb: BuyOrderService, private readonly revisionService: BuyOrderRevService) {}
 
     async createBuyOrder(tradeSession: TradeSession, type: string, tradeSystemGroup: number, candle?: Candle): Promise<BuyOrder> {
  
@@ -35,14 +37,16 @@ export class BuyOrderBLService {
 
         const buyOrder = await this.buyOrderDb.create(buyOrderData)
         const bo = await this.buyOrderDb.findByIds([buyOrder.id])
+        const revision: BuyOrderRev = { ...buyOrder, updateTime: Date.now() }
+        delete revision.id
+        await this.revisionService.create(revision)
         return bo[0]
     }
 
-    async getLastBuyOrder(tradeSession: TradeSession): Promise<BuyOrder> {
-        const buyOrders = await this.buyOrderDb.find({ where: { gid: tradeSession.id }, order: { id: 'DESC'}, take: 1 })
+    async getPrevBuyOrder(tradeSession: TradeSession, skip = 0): Promise<BuyOrder> {
+        const buyOrders = await this.buyOrderDb.find({ where: { gid: tradeSession.id }, order: { id: 'DESC'}, skip: skip, take: 1 })
         return buyOrders[0]
     }
-
     async getBuyOrders(tradeSession: TradeSession): Promise<BuyOrder[]> {
         const buyOrders = await this.buyOrderDb.find({ where: { gid: tradeSession.id } })
         return buyOrders
@@ -58,8 +62,12 @@ export class BuyOrderBLService {
         return buyOrders[0]
     }
 
-    async updateBuyOrder(buyOrder: BuyOrder): Promise<UpdateResult> {
-        return await this.buyOrderDb.update(buyOrder)
+    async updateBuyOrder(buyOrder: BuyOrder, revChanges = {}): Promise<UpdateResult> {
+        const revision: BuyOrderRev = { ...buyOrder, updateTime: Date.now(), ...revChanges }
+        delete revision.id
+        await this.revisionService.create(revision)
+        const res = await this.buyOrderDb.update({...buyOrder, ...revChanges})
+        return res
     }
 
 

@@ -11,7 +11,7 @@ export class TradeProcessor {
 
     @Process('trade')
     async handle(job: Job): Promise<void> {
-        await this.tradeService.tradeStream(job.data.message)
+        await this.tradeService.stream(job.data.message)
     }
 
     @OnQueueError()

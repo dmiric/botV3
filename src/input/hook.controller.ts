@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Put } from '@nestjs/common';
 import { HookReqDto } from './dto/HookReqDto';
 import { HookService } from './hook.service';
 
@@ -9,9 +9,16 @@ export class HookController {
 
   @Post()
   async create(@Body() req: HookReqDto): Promise<string> {    
-    console.log(req)
-    await this.hookService.start(req)
-    return "req";
+    console.log('create')
+    await this.hookService.newLong(req)
+    return "create";
+  }
+
+  @Put()
+  async update(@Body() req: HookReqDto): Promise<string> {    
+    console.log('update')
+    await this.hookService.updateLong(req)
+    return "update";
   }
   
 }
