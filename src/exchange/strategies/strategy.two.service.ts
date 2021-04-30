@@ -44,7 +44,7 @@ export class StrategyTwoService {
             return
         }
 
-        if (data[1] && data[1].length < 5) 
+        if (data[1] && data[1].length < 5)
             return
 
         this.candleSet = this.parseCandlesService.handleCandleStream(data, tradeSession, this.candleSet)
@@ -52,7 +52,7 @@ export class StrategyTwoService {
         const currentCandle: Candle = this.candleSet[this.candleSet.length - 1]
         const currentTick: Candle = this.candleSet[-1]
 
-        if (!currentTick) 
+        if (!currentTick)
             return
 
         // filter out real ticks
@@ -67,7 +67,7 @@ export class StrategyTwoService {
         this.lastCurrentCandle = currentCandle
 
         // if tick price didnt change return
-        if (this.lastClosePrice == currentTick.close) 
+        if (this.lastClosePrice == currentTick.close)
             return
 
         this.lastClosePrice = currentTick.close
@@ -80,7 +80,6 @@ export class StrategyTwoService {
             }
         }
 
-        // update prices for trailing during backtest
         await this.updateSellOrders(currentTick, tradeSession)
 
         // send sell order to exchange
@@ -88,40 +87,43 @@ export class StrategyTwoService {
 
         const buyPercent = await this.checkBuyOrderRules(currentTick, tradeSession)
 
-        // update buy STOP order if it exists
         const currentBuyOrder = await this.buyOrderBLService.getPrevBuyOrder(tradeSession)
 
         await this.updateBuyOrders(tradeSession, currentTick, currentBuyOrder, buyPercent)
 
         // create buy order        
-        if (!buyPercent) 
+        if (!buyPercent)
             return
 
-        if (currentBuyOrder && (this.isActiveOrder(currentBuyOrder.status) || currentBuyOrder.status == 'new')) 
+        if (currentBuyOrder && (this.isActiveOrder(currentBuyOrder.status) || currentBuyOrder.status == 'new'))
             return
 
         // we are only placing buy order if big (3h) candle is red
-        if (currentCandle.close < currentTick.close) 
+        if (currentCandle.close < currentTick.close)
             return
 
         const buyPrice = this.calculateBuyPrice(currentTick, tradeSession)
-        const amount = this.getAmount(tradeSession, buyPercent, buyPrice)
+        const amount = this.getBuyAmount(tradeSession, buyPercent, buyPrice)
 
         // skip if we have reached the balance
-        if (this.balanceService.check(tradeSession, amount, buyPrice, buyPercent)) 
+        if (this.balanceService.check(tradeSession, amount, buyPrice, buyPercent))
             return
 
-        if (await this.checkSafeDistance(tradeSession, buyPrice, currentTick)) 
+        if (await this.checkSafeDistance(tradeSession, buyPrice, currentTick))
             return
 
+        await this.createBuyOrder(tradeSession, buyPercent, currentTick, amount, buyPrice)
+    }
+
+    private async createBuyOrder(tradeSession: TradeSession, buyPercent: number, currentTick: Candle, amount: number, buyPrice: number) {
         const order = await this.buyOrderBLService.createBuyOrder(tradeSession, 'EXCHANGE STOP', buyPercent, currentTick)
         order.amount = amount
         order.price = buyPrice
         order.send()
         await this.buyOrderBLService.updateBuyOrder(order)
         const pl = this.bfxReqService.makeBuyOrder(order)
-        if (pl) this.socketsService.send('orderSocket', pl)
-        return
+        if (pl)
+            this.socketsService.send('orderSocket', pl)
     }
 
     private async updateBuyOrders(tradeSession: TradeSession, currentTick: Candle, currentBuyOrder: BuyOrder, buyPercent: number) {
@@ -152,7 +154,7 @@ export class StrategyTwoService {
             }
 
             const newBuyPrice = this.calculateBuyPrice(currentTick, tradeSession)
-            const newAmount = this.getAmount(tradeSession, buyPercent, newBuyPrice)
+            const newAmount = this.getBuyAmount(tradeSession, buyPercent, newBuyPrice)
 
             if (currentBuyOrder.price <= newBuyPrice) return
 
@@ -175,6 +177,36 @@ export class StrategyTwoService {
         }
     }
 
+    private getBuyAmount(tradeSession: TradeSession, priceDiffPerc: number, estPrice: number): number {
+        const buyRules = JSON.parse(tradeSession.buyRules.rules)
+        const amount = tradeSession.investment * buyRules[priceDiffPerc] / estPrice
+        return parseFloat(amount.toFixed(4))
+    }
+
+    private calculateBuyPrice(currentCandle: Candle, tradeSession: TradeSession) {
+        let price = currentCandle.close
+        if (tradeSession.exchange == 'backtest') {
+            price = currentCandle.low
+        }
+        return parseFloat(Percentage.addPerc(price, tradeSession.buyTrailingDistance).toFixed(2))
+    }
+
+    private async checkBuyOrderRules(candle: Candle, tradeSession: TradeSession): Promise<number> {
+        if (candle.hasOwnProperty("ma")) {
+            if (candle.close > candle.ma) {
+                return 0
+            }
+        }
+
+        const priceDiff = Percentage.diffNumsAsPerc(candle.ma, candle.close)
+        if (priceDiff < tradeSession.priceDiff) {
+            return 0
+        }
+
+        return parseFloat(priceDiff.toFixed(0)) < 1 ? 1 : parseFloat(priceDiff.toFixed(0))
+    }
+
+
     private async checkSafeDistance(tradeSession: TradeSession, buyPrice: number, currentTick: Candle): Promise<boolean> {
         const prevBuyOrderData = await this.sellOrderBLService.getQueryBuilder()
             .select("BuyOrder.cid", "cid")
@@ -192,7 +224,7 @@ export class StrategyTwoService {
             return false
 
         // if 60 min passed since last buy order ignore price check and make a new order    
-        if (currentTick.mts - prevBuyOrderData.candleMts > 1000 * 60 * 60) 
+        if (currentTick.mts - prevBuyOrderData.candleMts > 1000 * 60 * 60)
             return false
 
         if (prevBuyOrderData.sellStatus != 'new')
@@ -211,11 +243,59 @@ export class StrategyTwoService {
         return false
     }
 
-    private async updateSellOrders(currentTick: Candle, tradeSession: TradeSession): Promise<void> {
-        if (tradeSession.exchange != 'backtest') 
+
+    private async makeSellOrder(currentTick: Candle, tradeSession: TradeSession): Promise<void> {
+        if (this.unfilledSellOrders.length < 1)
             return
 
-        if (this.unfilledSellOrders.length < 1) 
+        let sellRules = JSON.parse(tradeSession.sellRules.rules)
+        if (tradeSession.salesRules) {
+            for (const salesRule of tradeSession.salesRules) {
+                const sR = JSON.parse(salesRule.rules)
+                if (this.balanceService.getPercent() < sR.balancePercent / 100) {
+                    sellRules = sR.rules
+                }
+            }
+        }
+        for (const [index, sellOrderData] of this.unfilledSellOrders.entries()) {
+            if (sellOrderData.status != 'new')
+                continue
+
+            const sellPrice = sellOrderData.price + sellOrderData.price * sellRules[sellOrderData.priceDiff] * sellOrderData.priceDiff / 10000
+            if (currentTick.close < sellPrice)
+                continue
+
+            const sellOrders = await this.sellOrderBLService.findByIds([sellOrderData.id])
+            const sellOrder = sellOrders[0]
+            sellOrder.price = sellPrice
+            const pl = this.bfxReqService.makeSellOrder(sellOrder)
+
+            if (pl)
+                this.socketsService.send('orderSocket', pl)
+
+            await sellOrder.send()
+            sellOrder.candleMts = currentTick.mts
+            sellOrder.candleOpen = currentTick.open
+            sellOrder.candleClose = currentTick.close
+            await this.sellOrderBLService.updateSellOrder(sellOrder)
+
+            if (tradeSession.exchange != 'backtest')
+                this.unfilledSellOrders.splice(index, 1)
+        }
+    }
+
+    /**
+     * Update prices for trailing during backtest
+     * 
+     * @param currentTick 
+     * @param tradeSession 
+     * @returns 
+     */
+    private async updateSellOrders(currentTick: Candle, tradeSession: TradeSession): Promise<void> {
+        if (tradeSession.exchange != 'backtest')
+            return
+
+        if (this.unfilledSellOrders.length < 1)
             return
 
         let ordersUpdated = 0
@@ -244,6 +324,11 @@ export class StrategyTwoService {
         if (ordersUpdated) this.updateUnfilledSellOrders(tradeSession)
     }
 
+    private calculateSellPrice(currentCandle: Candle, tradeSession: TradeSession) {
+        const price = currentCandle.high
+        return parseFloat(Percentage.addPerc(price, tradeSession.originalTrailingDistance).toFixed(2))
+    }
+
     private sendTransactionUpdate(tradeSession: TradeSession, order: any, amount: number, price: number) {
         const pl = [0, "tu", [
             null,
@@ -260,70 +345,6 @@ export class StrategyTwoService {
             order.cid
         ]]
         this.socketsService.send('orderSocket', pl)
-    }
-
-    private calculateSellPrice(currentCandle: Candle, tradeSession: TradeSession) {
-        const price = currentCandle.high
-        return parseFloat(Percentage.addPerc(price, tradeSession.originalTrailingDistance).toFixed(2))
-    }
-
-    private async makeSellOrder(currentTick: Candle, tradeSession: TradeSession): Promise<void> {
-        if (this.unfilledSellOrders.length < 1) 
-            return
-
-        let sellRules = JSON.parse(tradeSession.sellRules.rules)
-        if (tradeSession.salesRules) {
-            for (const salesRule of tradeSession.salesRules) {
-                const sR = JSON.parse(salesRule.rules)
-                if (this.balanceService.getPercent() < sR.balancePercent / 100) {
-                    sellRules = sR.rules
-                }
-            }
-        }
-        for (const [index, sellOrderData] of this.unfilledSellOrders.entries()) {
-            if (sellOrderData.status != 'new') 
-                continue
-
-            const sellPrice = sellOrderData.price + sellOrderData.price * sellRules[sellOrderData.priceDiff] * sellOrderData.priceDiff / 10000
-            if (currentTick.close < sellPrice) 
-                continue
-
-            const sellOrders = await this.sellOrderBLService.findByIds([sellOrderData.id])
-            const sellOrder = sellOrders[0]
-            sellOrder.price = sellPrice
-            const pl = this.bfxReqService.makeSellOrder(sellOrder)
-
-            if (pl) 
-                this.socketsService.send('orderSocket', pl)
-
-            await sellOrder.send()
-            sellOrder.candleMts = currentTick.mts
-            sellOrder.candleOpen = currentTick.open
-            sellOrder.candleClose = currentTick.close
-            await this.sellOrderBLService.updateSellOrder(sellOrder)
-
-            if (tradeSession.exchange != 'backtest') 
-                this.unfilledSellOrders.splice(index, 1)
-        }
-    }
-
-    private calculateBuyPrice(currentCandle: Candle, tradeSession: TradeSession) {
-        let price = currentCandle.close
-        if (tradeSession.exchange == 'backtest') {
-            price = currentCandle.low
-        }
-        return parseFloat(Percentage.addPerc(price, tradeSession.buyTrailingDistance).toFixed(2))
-    }
-
-    private calcMA(tradeSession: TradeSession, candleSet: Candle[]): number {
-        const maCandleSet = candleSet.slice(Math.max(candleSet.length - tradeSession.ma, 0))
-
-        let ma = 0
-        for (const candle of maCandleSet) {
-            ma = ma + candle.close
-        }
-
-        return ma / tradeSession.ma
     }
 
     private async updateUnfilledSellOrders(tradeSession: TradeSession): Promise<void> {
@@ -346,10 +367,15 @@ export class StrategyTwoService {
         await this.balanceService.update(tradeSession)
     }
 
-    private getAmount(tradeSession: TradeSession, priceDiffPerc: number, estPrice: number): number {
-        const buyRules = JSON.parse(tradeSession.buyRules.rules)
-        const amount = tradeSession.investment * buyRules[priceDiffPerc] / estPrice
-        return parseFloat(amount.toFixed(4))
+    private calcMA(tradeSession: TradeSession, candleSet: Candle[]): number {
+        const maCandleSet = candleSet.slice(Math.max(candleSet.length - tradeSession.ma, 0))
+
+        let ma = 0
+        for (const candle of maCandleSet) {
+            ma = ma + candle.close
+        }
+
+        return ma / tradeSession.ma
     }
 
     // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
@@ -542,18 +568,4 @@ export class StrategyTwoService {
 
     }
 
-    private async checkBuyOrderRules(candle: Candle, tradeSession: TradeSession): Promise<number> {
-        if (candle.hasOwnProperty("ma")) {
-            if (candle.close > candle.ma) {
-                return 0
-            }
-        }
-
-        const priceDiff = Percentage.diffNumsAsPerc(candle.ma, candle.close)
-        if (priceDiff < tradeSession.priceDiff) {
-            return 0
-        }
-
-        return parseFloat(priceDiff.toFixed(0)) < 1 ? 1 : parseFloat(priceDiff.toFixed(0))
-    }
 }
